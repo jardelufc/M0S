@@ -1,4 +1,8 @@
 # M0S
+
+It's going to be a porting for Cortex M4 - NUCLEOS 411RE
+
+
 1KB Cortex M0 Real Time Operating System
 
 Full blown RTOS written in Thumb ARM assembly language to fit in 1024 bytes.
