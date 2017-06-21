@@ -11,7 +11,18 @@ enum states{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MU
 typedef unsigned int uint32_t;
 
 typedef struct{
-    uint32_t stack;
+    uint32_t R0;
+    uint32_t R1;
+    uint32_t R2;
+    uint32_t R3;
+    uint32_t R12;
+    uint32_t LR;
+    uint32_t PC;
+    uint32_t XPSR;
+}Frame;
+
+typedef struct{
+    uint32_t entry_stack;
     uint32_t pc;
     uint32_t ipc;
     uint32_t entry_state;
@@ -97,18 +108,53 @@ void maybe_is_sleeping(uint32_t r4){
 void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
     r4 = r3+task.entry_target;
     r4--;
-    &(r3+task.entry_target)=r4;
+    &(r3+task.entry_target)=r4; // é igual a str r4,[r5,taskentrytarget] ?
     if(r4!=0)
         advance_counter();
     r5 = r3+task.entry_target;
+
     if(r5==SENT_TO_SLEEP)
         do_not_advance_pc();
-    }
+}
 
+void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4, uint32_t r5){
+    r5 = r3+task.entry_stack;
+    r4 = Frame.PC + //0x20 linha 171 do .asm
+    r4 = r4 + 2;
+    Frame.PC=r4
+}
 
+void do_not_advance_pc(uint32_t r4, uint32_t r3){
+    r4 = RUNNING;
+    task.entry_state=r4;
+}
+
+void advance_counter(uint32_t r2){
+    r2 = r2 - 1;
+    if(r2>=0)
+        process_sleeping_tasks();
+}
+//-----------------------------------------------------------------------------------------
+//Decidir, agora, qual tarefa deve ser escalonada para o processador
+
+void find_next_task_init(uint32_t r5, uint32_t r3){
+    r5 = MAX_TASKS;
+    r3=0;
+    find_next_task();
+}
+
+void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
+    r6++;
+    r2 = MAX_TASKS-1;
+    //ands r6,r2 pesquisar mais acerca, aparentemente representa &&, mas o código não apresenta uma condição.
+
+    r2 = r2+r0;
+    r2 = r2+ofs.task_array;
+
+}
+
+void
 
 int main()
 {
-    printf("Hello world!\n");
-    return 0;
 }
