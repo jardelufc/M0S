@@ -10,9 +10,9 @@
 #define FREE_MEMORY_END 15488;
 #define idle_task 0;
 #define MAX_TASKS 4;
-#define MAX-MUTEX 8;
-#define TASK-STACK-SIZE 128;
-#define unescheduled 0;
+#define MAX_MUTEX 8;
+#define TASK_STACK_SIZE 128;
+#define UNSCHEDULED 0;
 
 enum states{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX} estados;
 
@@ -58,7 +58,7 @@ task mytasks[MAX_TASKS];
 void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
    
     uint32_t r0=0;   //main start
-    uint32_t r1= of.sys_timer;
+    uint32_t r1= myofs.sys_timer;
     r1+=1;
     myofs.sys_timer=r1;
 
@@ -76,16 +76,12 @@ void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
     sleeping_tasks();
 }
 
-void continue_normal_tasks(uint32_t r1, uint32_t r2){
-    estado *p;
-    estado  x;
-    p = &x;
+void continue_normal_tasks(void){
 
-    r1= r1+myofs.task_array;
-    r1 = r1+r0;
-
-    r2 = r1+mytasks[???????].entry_state;
-    if(r2 == p->unescheduled)   //Verificar se o apontamento está correto
+    task *ptask;  
+    ptask = myofs.task_array[0]; 
+  
+    if(ptask.entry_state == UNSCHEDULED)   //Verificar se o apontamento está correto
         sleeping_tasks();
 }
 
