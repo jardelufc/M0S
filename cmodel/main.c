@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TOTAL_MEMORY 16000; //Valor vari·vel
+#define TOTAL_MEMORY 16000; //Valor vari√°vel
 #define KERNEL_MEMORY_START 32;
 #define MAX_KERNEL_MEMORY 512;
 #define KERNEL_STACK_SIZE 256;
@@ -14,7 +14,7 @@
 #define TASK-STACK-SIZE 128;
 #define unescheduled 0;
 
-enum states{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX}estados;
+enum states{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX} estados;
 
 typedef unsigned int uint32_t;
 
@@ -30,37 +30,37 @@ typedef struct{
 }Frame;
 
 typedef struct{
-    uint32_t entry_stack;
-    uint32_t pc;
-    uint32_t ipc;
-    uint32_t entry_state;
-    uint32_t unused;
-    uint32_t entry_target;
-    uint32_t entry_nr_sched;
-    uint32_t entry_mutex;
+    uint32_t entry_stack;   // stack
+    uint32_t pc;            // program counter
+    uint32_t ipc;           // inter process communication
+    uint32_t entry_state;   // state
+    uint32_t unused;        // unused
+    uint32_t entry_target;  // stores the target value for sleeping tasks
+    uint32_t entry_nr_sched;// how many times was this thread scheduled
+    uint32_t entry_mutex;   // mutex
 }task;
 
 typedef struct{
     uint32_t current_task;
     uint32_t num_tasks;
     uint32_t sys_timer;
-    uint32_t stack_pos;
-    uint32_t task_array;
     uint32_t idle_stack_pos;
-    uint32_t entry_nr_sched;
+    uint32_t idle_nr_sched;  
     uint32_t mutex_storage;
+    uint32_t mutex_area;    
+    uint32_t task_array;
 }ofs;
 
-typedef struct{
-   // uint8_t unescheduled;
-}estado;
+ofs myofs;
+frame myframe;
+task mytasks[MAX_TASKS];
 
 void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
-    ofs of;
+   
     uint32_t r0=0;   //main start
     uint32_t r1= of.sys_timer;
     r1+=1;
-    of.sys_timer=r1;
+    myofs.sys_timer=r1;
 
     if(r1==0)
         //scheduler_exit;
@@ -69,10 +69,10 @@ void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
     r10=r4;
     r11=r5;
 
-    r6 = of.current_task;
+    r6 = myofs.current_task;
     if(r6 <0)
         continue_normal_tasks();
-    of.stack_pos=r1;
+    myofs.stack_pos=r1;
     sleeping_tasks();
 }
 
@@ -81,18 +81,18 @@ void continue_normal_tasks(uint32_t r1, uint32_t r2){
     estado  x;
     p = &x;
 
-    r1= r1+ofs.task_array;
+    r1= r1+myofs.task_array;
     r1 = r1+r0;
 
-    r2 = r1+task.entry_state;
-    if(r2 == p->unescheduled)   //Verificar se o apontamento est· correto
+    r2 = r1+mytasks[???????].entry_state;
+    if(r2 == p->unescheduled)   //Verificar se o apontamento est√° correto
         sleeping_tasks();
 }
 
 void sleeping_tasks(){
-    uint32_t r1 = ofs.task_array; //Colocar em endereÁo ou n„o ?
+    uint32_t r1 = ofs.task_array; //Colocar em endere√ßo ou n√£o ?
     r1 = r1+r0;
-    int r2 = MAX_TASKS-1; //EndereÁo de Max-tasks ?
+    int r2 = MAX_TASKS-1; //Endere√ßo de Max-tasks ?
 }
 
 void process_sleeping_tasks(uint32_t r1){
@@ -118,7 +118,7 @@ void maybe_is_sleeping(uint32_t r4){
 void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
     r4 = r3+task.entry_target;
     r4--;
-    &(r3+task.entry_target)=r4; // È igual a str r4,[r5,taskentrytarget] ?
+    &(r3+task.entry_target)=r4; // √© igual a str r4,[r5,taskentrytarget] ?
     if(r4!=0)
         advance_counter();
     r5 = r3+task.entry_target;
@@ -128,7 +128,7 @@ void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
 }
 
 void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4, uint32_t r5){
-    r5 = r3+task.entry_stack;
+    r5 = r3+mytasks[??????].entry_stack;
     r4 = Frame.PC + //0x20 linha 171 do .asm
     r4 = r4 + 2;
     Frame.PC=r4
@@ -156,10 +156,10 @@ void find_next_task_init(uint32_t r5, uint32_t r3){
 void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
     r6++;
     r2 = MAX_TASKS-1;
-    //ands r6,r2 pesquisar mais acerca, aparentemente representa &&, mas o cÛdigo n„o apresenta uma condiÁ„o.
+    //ands r6,r2 pesquisar mais acerca, aparentemente representa &&, mas o c√≥digo n√£o apresenta uma condi√ß√£o.
 
     r2 = r2+r0;
-    r2 = r2+ofs.task_array;   //r2 se torna o endereÁo da prÛxima tarefa
+    r2 = r2+myofs.task_array;   //r2 se torna o endere√ßo da pr√≥xima tarefa
 
     r1 = r2 + task.entry_state;
     if(r1 == RUNNING)
@@ -184,7 +184,7 @@ void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
     ofs.current_task = r2;
 
     r0 = r0+ofs.idle_stack_pos;
-    r1 = idle_task+1; //linha 224, idle_stack È um bloco, contudo n„o h· retorno de valor da funÁ„o
+    r1 = idle_task+1; //linha 224, idle_stack √© um bloco, contudo n√£o h√° retorno de valor da fun√ß√£o
     Frame.PC=r1;
     restore_stack();
 }
@@ -197,14 +197,14 @@ void it_is_an_unscheduled_task(uint32_t r3, uint32_t r1, uint32_t r2){
 
 void task_found(uint32_t r1, uint32_t r6, uint32_t r2, uint32_t r3, uint32_t r0){
     r1 = r6;
-    ofs.current_task = r1;
+    myofs.current_task = r1;
 
     r1 = r2 + task.entry_nr_sched;
     r1++;
     task.entry_nr_sched = r1;
 
     r1 = r2 + task.entry_nr_sched;
-    //msr PSP, r1, aparentemente n„o aplic·vel em C, uma vez q solicita o uso de um  coprocessador
+    //msr PSP, r1, aparentemente n√£o aplic√°vel em C, uma vez q solicita o uso de um  coprocessador
 
     if(r3!=0)
         scheduler_exit();
@@ -230,10 +230,10 @@ void scheduler_exit(){
 }
 
 //----------------------------------------------------------------------------------
-// Para o prÛximo bloco, tem-se que, o  Idle task ser· escalonado no caso de nenhuma outra
-//tarefa estar disponÌvel para escalonamento.
-// Tentar· concatenar dois blocos de memÛria livre diferentes e ent„o entrar em  loop.
-// TambÈm pode ser usado para colocar o sistema em repouso visando economizar energia.
+// Para o pr√≥ximo bloco, tem-se que, o  Idle task ser√° escalonado no caso de nenhuma outra
+//tarefa estar dispon√≠vel para escalonamento.
+// Tentar√° concatenar dois blocos de mem√≥ria livre diferentes e ent√£o entrar em  loop.
+// Tamb√©m pode ser usado para colocar o sistema em repouso visando economizar energia.
 //----------------------------------------------------------------------------------
 
 void idle_task(){
@@ -244,4 +244,6 @@ void idle_task(){
 
 int main()
 {
+    
+    
 }
