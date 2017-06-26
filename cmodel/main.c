@@ -7,7 +7,7 @@ frame myframe;
 task mytasks[MAX_TASKS];
 
 void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
-   
+
     uint32_t r0=0;   //main start
     uint32_t r1= myofs.sys_timer;
     r1+=1;
@@ -29,17 +29,17 @@ void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
 
 void continue_normal_tasks(void){
 
-    task *ptask;  
-    ptask = myofs.task_array[0]; 
-  
+    task *ptask;
+    ptask = myofs.task_array[0];
+
     if(ptask.entry_state == UNSCHEDULED)   //Verificar se o apontamento está correto
         sleeping_tasks();
 }
 
 void sleeping_tasks(){
-    uint32_t r1 = ofs.task_array; //Colocar em endereço ou não ?
+    uint32_t r1 = ofs.task_array;
     r1 = r1+r0;
-    int r2 = MAX_TASKS-1; //Endereço de Max-tasks ?
+    int r2 = MAX_TASKS-1;
 }
 
 void process_sleeping_tasks(uint32_t r1){
@@ -50,7 +50,7 @@ void process_sleeping_tasks(uint32_t r1){
         maybe_is_sleeping();
 }
 
-void check_to_see_if_mutex_is_free(uint32_t r3){
+void check_to_see_if_mutex_is_free(uint32_t r3, uint32_t r0){
     uint32_t r5 = r3+task.entry_mutex;
     uint32_t r4 = r0+ofs.
 }
@@ -68,7 +68,7 @@ void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
     &(r3+task.entry_target)=r4; // é igual a str r4,[r5,taskentrytarget] ?
     if(r4!=0)
         advance_counter();
-    r5 = r3+task.entry_target;
+    r5 = r3+mytasks[??????].entrty_target;
 
     if(r5==SENT_TO_SLEEP)
         do_not_advance_pc();
@@ -76,14 +76,14 @@ void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
 
 void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4, uint32_t r5){
     r5 = r3+mytasks[??????].entry_stack;
-    r4 = Frame.PC + //0x20 linha 171 do .asm
+    r4 = Frame.PC;
     r4 = r4 + 2;
     Frame.PC=r4
 }
 
 void do_not_advance_pc(uint32_t r4, uint32_t r3){
     r4 = RUNNING;
-    task.entry_state=r4;
+    mytasks[??????].entry_state = r4; //task.entry_state=r4;
 }
 
 void advance_counter(uint32_t r2){
@@ -108,7 +108,7 @@ void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
     r2 = r2+r0;
     r2 = r2+myofs.task_array;   //r2 se torna o endereço da próxima tarefa
 
-    r1 = r2 + task.entry_state;
+    r1 = r2 + mytasks[??????].entry_state;//task.entry_state;
     if(r1 == RUNNING)
         task_found();
     if(r1== UNSCHEDULED)
@@ -139,18 +139,18 @@ void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
 void it_is_an_unscheduled_task(uint32_t r3, uint32_t r1, uint32_t r2){
     r3 = 1;
     r1 = RUNNING;
-    r1 = r2 +task.entry_state;
+    r1 = r2 +mytasks[??????].entry_state;//task.entry_state;
 }
 
 void task_found(uint32_t r1, uint32_t r6, uint32_t r2, uint32_t r3, uint32_t r0){
     r1 = r6;
     myofs.current_task = r1;
 
-    r1 = r2 + task.entry_nr_sched;
+    r1 = r2 + mytasks[??????].entry_nr_sched;//task.entry_nr_sched;
     r1++;
-    task.entry_nr_sched = r1;
+    mytasks[??????].entry_nr_sched=r1;//task.entry_nr_sched = r1;
 
-    r1 = r2 + task.entry_nr_sched;
+    r1 = r2 + mytasks[??????].entry_nr_sched;//task.entry_nr_sched;
     //msr PSP, r1, aparentemente não aplicável em C, uma vez q solicita o uso de um  coprocessador
 
     if(r3!=0)
@@ -187,10 +187,72 @@ void idle_task(){
     r5 =  FREE_MEMORY_START; //FREE_MEMORY_START = KERNEL_MEMORY_START + MAX_KERNEL_MEMORY +KERNEL_STACK_SIZE+IDLE_TASK_STACK_SIZE
     r4 = FREE_MEMORY_END;//FREE_MEMORY_END = KERNEL_MEMORY_START + TOTAL MEMORY-(MAX_TASKS*TASk_STACK_SIZE)
     r0 = 0;
+    mutex_try_lock(); //linha 812.arm
+
+    if(r!=0)
+        enable_ints();
+}
+
+void idle_loop(uint32_t r5, uint32_t r1, uint32_t r2){
+    disable_interrupts(global);
+    uint32_t r1 =  r5;
+    if(r1<0)
+        check_next_block();
+    if(r1==0)
+        idle_release_locks();
+
+    uint32_t r2 = r1+4;
+    r2 = r2 + r5;
+    if(r2>r4)
+        idle_release_locks;
+
+    uint32_t r3 = r2;
+    if(r3<0)
+        check_next_block();
+    if(r3>0)
+        combine_zones;
+
+    r4 = r4 - r2; //subs r3,r4,r2 pode ser implementado
+    r3 = r3- r4; // dessa forma ?
+
+}
+
+void combine_zones(uint32_t r1, uint32_t r3, uint32_t r5){
+    r1 = r1 + r3;
+    r1 = r1+4;
+    r5 = r1;
+}
+
+void check_next_block(uint32_t r1, uint32_t r5, uint32_t r4){
+    r1 = r1+4;
+    r5 = r5+r1;
+
+    if(r5<r4)
+        idle_loop(uint32_t r5, uint32_t r1, uint32_t r2)
+}
+
+void idle_release_locks(uint32_t r0){
+    r0 = 0;
+    mutex_unlock();
+}
+
+void enable_ints(){
+    enable_interrupts(global);
+}
+
+// Ponto de entrada principal
+// Inicia memória, pilhas e o relógio do sistema e chama init()
+
+void start(uint32_t r1, uint32_t r2){
+    disable_interrupts(global);
+    uint32_t r0 = KERNEL_STACK_TOP;
+    // msr MSP, r0,msr, PSP, r0
+    // mrs r0, CONTROL não encontrei CONTROL
+
+    r1 = 2;
 }
 
 int main()
 {
-    
-    
+
 }

@@ -6,6 +6,7 @@
 #define KERNEL_MEMORY_START 32;
 #define MAX_KERNEL_MEMORY 512;
 #define KERNEL_STACK_SIZE 256;
+#define KERNEL_STACK_TOP 48;
 #define IDLE_STACK_SIZE 256;
 #define FREE_MEMORY_START 1024;
 #define FREE_MEMORY_END 15488;
@@ -46,9 +47,9 @@ typedef struct{
     uint32_t num_tasks;
     uint32_t sys_timer;
     uint32_t idle_stack_pos;
-    uint32_t idle_nr_sched;  
+    uint32_t idle_nr_sched;
     uint32_t mutex_storage;
-    uint32_t mutex_area;    
+    uint32_t mutex_area;
     uint32_t task_array;
 }ofs;
 
