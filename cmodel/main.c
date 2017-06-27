@@ -126,7 +126,7 @@ void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
 
     r1 =  r0 + ofs.current_task;
     r2 = 1;
-    r2 = r2 + 32; // igual a lsls r2,31 ? linha 219
+    r2 = r2 + 32*2; // igual a lsls r2,31 ? linha 219
     r1 = r2;     // igual a orrs r1,r2 ?
     ofs.current_task = r2;
 
@@ -250,6 +250,77 @@ void start(uint32_t r1, uint32_t r2){
     // mrs r0, CONTROL não encontrei CONTROL
 
     r1 = 2;
+    //RESTA TERMINAR A FUNÇÃO
+}
+//Envia uma palavra  (1...2^32-1) para outra tarefa por meio de IPC
+//r0 = id da tarefa
+//r1 = a palavra a ser enviada
+
+void start ipc_send(){
+    uint32_t r2 = 0x00000800;
+    uint32_t r0 = TASK_ENTRY_SHIFT_L*2;
+    r0 =  r0+ofs.task_array;
+    r0= r0+r2;
+
+    mytasks[MAX_TASKS].ipc=r1;
+    return;
+}
+
+//Função para ler o valor atual de IPC
+void ipc_read(){
+    //PUSH LR, POSSIVELMENTE SERÁ NECESSÁRIO IMPLEMENTAR UMA PILA, ATÉ MESMO PARA
+    //IMPLEMENTAR AS FUNÇÕES QUE LIDAM COM A PILHA DO SISTEMA E DO USUÁRIO
+    //PUSH{Lr}
+    uint32_t r1 = 0x00000800;
+    r1 = get_current_task_id(); //DÚVIDA
+    r0 = TASK_ENTRY_SHIFT_L*2;
+    r0 = r0+ofs.task_array;
+    r0 = r0 + r1;
+    mytasks[?????].ipc=r0;
+    //POP {pc}
+}
+
+// ORGANIZA A PILHA PARA O PRIMEIRO ESCALONADOR DO IDLE TASK
+// SIMULANDO COMO SE JA TIVESSE SIDO ESCALONADO ANTES
+
+void init_idle_task(uint32_t r2){
+    uint32_t r0 = IDLE_TASK_STACK_TOP;
+    uint32_t r1 = 25; //?193?
+    //rev r1,r1 transforma r1 em um registro de 4 bytes, mas o r1 já é desse tamanho
+    r0 = r0 - 8;
+    r0  = r0 - r1 + 4;
+    r1 = idle_task+1;
+    r2 = r2-4;
+    r0 = r1; //stored
+    r0 = ro-56;
+    r1 = 0x00000800; //32bytes
+    ofs.idle_stack_pos = r0;
+    return ofs.idle_stack_pos;
+}
+
+//Inicializa o vetor de tarefas com os valores padrão e os ponteiros de pilha corretos
+//Padrão PC é setado para init
+//Nenhuma tarefa será escalonada por essa rotina
+
+void init_task_area(){
+    //push{r0-r4,lr} Usar quando implementar a lista
+    uint32_t r0; //DÚVIDA, já que inicio o ro com uint32_t, ainda é necessário setar seu tamanho ?
+    r0 =  r0 + ofs.task_array;
+    uint32_t r1 = MAX_TASKS-1;
+}
+
+void init_loop(uint32_t r0){
+    uint32_t r2 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
+    uint32_t r1 = TASK_ENTRY_SHIFT_L*2;
+    r2 = r2 + r0;
+
+    uint32_t r3 = INACTIVE;
+    mytasks[?????].entry_state = r3;
+    r3 = infinite_loop()+1; //INFINITE_LOOP NÃO É UMA FUNÇÃO QUE RETORNA VALOR, COMO PODE SER ADICIONADA DE 1 ?
+    mytasks[?????].pc = r3;
+    uint32_t r3 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
+    uint32_t r1 = TASK_ENTRY_SHIFT_L*2;
+
 }
 
 int main()
