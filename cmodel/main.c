@@ -309,7 +309,7 @@ void init_task_area(){
     uint32_t r1 = MAX_TASKS-1;
 }
 
-void init_loop(uint32_t r0){
+void init_loop(uint32_t r0, uint32_t r1){
     uint32_t r2 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
     uint32_t r1 = TASK_ENTRY_SHIFT_L*2;
     r2 = r2 + r0;
@@ -320,6 +320,135 @@ void init_loop(uint32_t r0){
     mytasks[?????].pc = r3;
     uint32_t r3 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
     uint32_t r1 = TASK_ENTRY_SHIFT_L*2;
+    uint32_t r4 = 0x00001000; //16 bytes?
+    r4 = r4-r3;
+    r4 = r4 - 0x20; //0x100 == 4 bytes ?
+    mytasks[?????].entry_state = r4;
+
+    r1 = r1-1;
+    if(r1 >= 0)
+        init_loop(r0, r1);
+    //pop{r0-r4,pc} usar quando implementar a pilha
+}
+
+//Cria uma tarefa
+//entrada: r0 = endereço de tarefa
+// retorna o id da tarefa ou -1 se der erro
+
+void create_task(){
+    //push{r4,lr}  implementar quando a pilha for criada
+    disable_interrupts(global);
+    uint32_t r1 = 0x00000800 //800 —> 100000  —>32 ?
+    uint32_t r2 = MAX_TASKS-1;
+}
+
+void create_loop(uint32_t r0, uint32_t r2){
+    uint32_t r3 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
+    uint32_t r2 = TASK_ENTRY_SHIFT_L*2;
+    r3 = r3 + r1;
+    r3 = r3 + ofs.task_array;
+
+    uint32_t r4 = r3 + TASK_ENTRY_SHIFT_L;
+    if(r4 != INACTIVE)
+        create_next();
+
+    r0 = r0 + 1;
+    mytasks[?????].pc = r0;
+    r1 = r3 + mytasks[?????].entry_stack;
+    Frame.PC = r0;
+
+    r0 = UNSCHEDULED;
+    mytasks[?????].entry_state = r0;
+
+    r1 = 0x00000800; //32 bytes ?
+    r4 = r1 + ofs.num_tasks;
+    r4 = r4+1;
+    ofs.num_tasks = r4;
+
+    r0 = r2;
+    create_exit();
+}
+
+void create_next(uint32_t r0, uint32_t r2){
+    r2 = r2 - 1;
+    if(r2 >= 0)
+        create_loop(r0,r2);
+
+    r0 = 0;
+    //mvns r0,r0
+}
+
+void create_exit(){
+    enable_interrupts(global);
+    //pop{r4,pc}
+}
+
+//Coloca uma tarefa que vai ser identificada por seu numero
+//de identificação para dormir por um numero especifico de tiques
+//Se a tarefa já estiver dormindo, sobrescreve o contador
+//ms com o novo valor
+//Entrada: r0 = identificação da tarefa
+//         r1 = quantos milisegundos para esperar
+
+void sleep_task{
+    disable_interrupts(global)
+
+    uint32_t r2 = 0x00000800 // 32bytes
+    uint32_t r0 = TASK_ENTRY_SHIFT_L*2;
+    r2 = r2 + ofs.task_array;
+    r2 = r2 + r0;
+
+    mytasks[?????].entry_target = r1;
+    r1 = mytasks[?????].entry_state;
+    if(r1 == SLEEPING)
+        sleeping();
+
+    r1 = SENT_TO_SLEEP;
+    mytasks[?????].entry_state = r1;
+}
+
+void sleeping(){
+    enable_interrupts(global);
+    return;
+}
+
+//Colocar a atual tarefa para dormir por um numero específico de tiques
+// entrada: r0 = esperar por quantos milisegundos
+
+void sleep(uint32_t r1, uint32_t r0){
+    uint32_t r2 = 0x00000800;// 32bytes
+    r1 = r0;
+    r0 = ofs.current_task;
+
+    r0 = r0*32 //igual a lsls r0,TASK_ENTRY_SHIFT_L
+    r2 = r2 + ofs.task_array;
+    r2 = r2 + r0;
+
+    mytasks[?????].entry_target = r1;
+    r1 = SLEEPING;
+    mytasks[?????].entry_state = r1;
+
+    //b.
+
+    return(r1); //  PROVISÓRIO
+}
+
+// Achar o identificador da tarefa usando o endereço de sua subrotina
+// Input:  r0 = iniciar a subrotina
+// Return: identificador da tarefa ou -1 caso dê errado
+// AVISO; retorna o primeiro id que ele encontra que bate com o endereço
+// se criar duas tarefas com o mesmo endereço, boa sorte
+
+void get_task_id(uint32_t r0, uint32_t r1){
+    r0 =  r0+ 1;
+    r1 = MAX_TASKS-1;
+}
+
+void get_task_loop(){
+    uint32_t r3 = 0x00000800; // 32 bytes
+    r2 = r1*32; //lsls r2,r1,TASK_ENTRY_SHIFT_L;
+    r2 = r2 + ofs.task_array;
+    r2 = r2+ r3;
 
 }
 
