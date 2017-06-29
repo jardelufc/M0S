@@ -126,7 +126,7 @@ void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
 
     r1 =  r0 + ofs.current_task;
     r2 = 1;
-    r2 = r2 + 32*2; // igual a lsls r2,31 ? linha 219
+    r2 = r2*32;
     r1 = r2;     // igual a orrs r1,r2 ?
     ofs.current_task = r2;
 
@@ -258,7 +258,7 @@ void start(uint32_t r1, uint32_t r2){
 
 void start ipc_send(){
     uint32_t r2 = 0x00000800;
-    uint32_t r0 = TASK_ENTRY_SHIFT_L*2;
+    uint32_t r0 = r0*2;
     r0 =  r0+ofs.task_array;
     r0= r0+r2;
 
@@ -273,7 +273,7 @@ void ipc_read(){
     //PUSH{Lr}
     uint32_t r1 = 0x00000800;
     r1 = get_current_task_id(); //DÚVIDA
-    r0 = TASK_ENTRY_SHIFT_L*2;
+    r0 = r0*2;
     r0 = r0+ofs.task_array;
     r0 = r0 + r1;
     mytasks[?????].ipc=r0;
@@ -310,16 +310,14 @@ void init_task_area(){
 }
 
 void init_loop(uint32_t r0, uint32_t r1){
-    uint32_t r2 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
-    uint32_t r1 = TASK_ENTRY_SHIFT_L*2;
+    uint32_t r2 = r1*32;; //significa r2,r1, TASK_ENTRY_SHIFT_L?
     r2 = r2 + r0;
 
     uint32_t r3 = INACTIVE;
     mytasks[?????].entry_state = r3;
     r3 = infinite_loop()+1; //INFINITE_LOOP NÃO É UMA FUNÇÃO QUE RETORNA VALOR, COMO PODE SER ADICIONADA DE 1 ?
     mytasks[?????].pc = r3;
-    uint32_t r3 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
-    uint32_t r1 = TASK_ENTRY_SHIFT_L*2;
+    uint32_t r3 = r1*32; //significa r2,r1, TASK_ENTRY_SHIFT_L?
     uint32_t r4 = 0x00001000; //16 bytes?
     r4 = r4-r3;
     r4 = r4 - 0x20; //0x100 == 4 bytes ?
@@ -343,12 +341,12 @@ void create_task(){
 }
 
 void create_loop(uint32_t r0, uint32_t r2){
-    uint32_t r3 = TASK_ENTRY_SHIFT_L*2; //significa r2,r1, TASK_ENTRY_SHIFT_L?
-    uint32_t r2 = TASK_ENTRY_SHIFT_L*2;
+    //significa r2,r1, TASK_ENTRY_SHIFT_L?
+    uint32_t r2 = r1*32;
     r3 = r3 + r1;
     r3 = r3 + ofs.task_array;
 
-    uint32_t r4 = r3 + TASK_ENTRY_SHIFT_L;
+    uint32_t r4 = r3*32;
     if(r4 != INACTIVE)
         create_next();
 
@@ -394,7 +392,7 @@ void sleep_task{
     disable_interrupts(global)
 
     uint32_t r2 = 0x00000800 // 32bytes
-    uint32_t r0 = TASK_ENTRY_SHIFT_L*2;
+    uint32_t r0 = r0*32;
     r2 = r2 + ofs.task_array;
     r2 = r2 + r0;
 
@@ -449,6 +447,144 @@ void get_task_loop(){
     r2 = r1*32; //lsls r2,r1,TASK_ENTRY_SHIFT_L;
     r2 = r2 + ofs.task_array;
     r2 = r2+ r3;
+
+    r3 = r3 + mytasks[?????].pc;
+    if(r0 == r3)
+        found_it();
+
+    r1 = r1-1;
+    if(r1>=0)
+        get_task_loop(uint32_t r1);
+}
+
+void found_it(uint32_t r0, uint32_t r1){
+        r0 = r1;
+        return r0;
+}
+
+//Retorna o numero de tarefas executando
+
+void get_number_of_tasks(){
+    uint32_t r0;
+    r0 = r0 +ofs.num_tasks;
+    return r0;
+}
+
+//Retorna o identificador da tarefa atual
+
+void get_current_task_id(){
+    uint32_t r0;
+    r0 = r0 +  ofs.current_task;
+    return r0;
+}
+
+//Retorna o timer do sistema (contador jiffie ou contador de tiques)
+
+void get_system_timer(){
+    uint32_t r0;
+    r0 =  r0 + ofs.sys_timer;
+    return r0;
+}
+
+//Define o valor do tempo de sistema a um valor especifico
+//Input:  r0=value
+//Output:  valor de tempo antigo
+
+void set_system_timer(uint32_t r2){
+    uint32_t r1;
+    r2 = r2+ofs.sys_timer;
+    ofs.sys_timer = r0;
+    r0 = r2;
+    return r0;
+}
+
+//Remove a tarefa de um vetor de escalonamento
+//input: r0 =  id de thread
+
+void kill(uint32_t r1,uint32_t r2, uint32_t r3){
+    uint32_t r1;
+    r2 = r0*32;
+    r2 = r2 + ofs.task_array;
+    r2 = r2 + r1;
+
+    disable_interrupts(global);
+    r3 = INACTIVE;
+    mytasks[?????].entry_state = r3;
+
+    r3 = r0*32;
+    uint32_t = 0x00001000;
+
+    r4 = r4 - r3;
+    r4 = r4 - 0x20;
+    mytasks.[?????].entry_stack = r4;
+
+    r3 = infinite_loop()+1; //infinite não é uma função que retorna nada, como pode ser somada ?
+    mytasks[?????].pc = r3;
+
+    r3 = ofs.num_tasks;
+    r3 = r3-1;
+    if(r3>=0)
+        keep_going();
+}
+
+void keep_going(uint32_t r3){
+    ofs.num_tasks = r3;
+    enable_interrupts(global);
+    return
+}
+
+//Vai ser chamado por uma thread de forma a parar de executar
+
+void exit(){
+    get_current_task_id(); //call
+    kill(); //call
+}
+
+//Preenche o buffer com os valores passados
+//Input: r0 = endereço do buffer
+//       r1 = valor a ser usado para o preenchimento
+//       r2 = tamanho do buffer em tamanho word
+
+void memset(uint32_t r2){
+    //stmia r0!,{r1}
+    r2 = r2 - 1;
+    if(r2!=0)
+        memset(r2);
+    return
+}
+
+// Aloca memória
+//input r0: tamanho em bytes (máximo 65532 ou FFFC)
+//Retorna o endereço da memoria alocada mais recentemente ou 0 caso falhe
+//
+void malloc(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3)){
+    //push {r4-r5,lr} implementar quando implementar a pilha
+    r4 =  r0;
+    r0 = 0;
+    mutex_lock();
+
+    r0 = r4;
+    r1 = 3;
+    r0 = r0+3;
+    //bics r0,r1;
+    r1 = FREE_MEMORY_START;
+    r3 = FREE_MEMORY_END;
+}
+
+void check_block(uint32_t r2, uint32_t r1){
+    r2 = r2 + r1;
+    if(r2<0)
+        next_block();
+    if(r2>0)
+        found_a_block();
+}
+
+void it_was_never_allocated(uint32_t r2){
+    // se for 0, nunca foi alocado, bloco deve ser: tamanho máximo - control_word
+    r2 = FREE_MEMORY_END - FREE_MEMORY_START -4;
+}
+
+void found_a_block(uint32_t r0, uint32_t r2){
 
 }
 
