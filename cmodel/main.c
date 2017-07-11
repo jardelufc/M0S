@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "m0.h"
 
 
 ofs myofs;
-frame myframe;
+Frame myframe;
 task mytasks[MAX_TASKS];
 
-void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6){
+void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r8, uint32_t r9, uint32_t r10, uint32_t r11){
 
     uint32_t r0=0;   //main start
     uint32_t r1= myofs.sys_timer;
@@ -585,7 +586,155 @@ void it_was_never_allocated(uint32_t r2){
 }
 
 void found_a_block(uint32_t r0, uint32_t r2){
+    if(r0>r2)
+        next_block();
 
+    uint32_t r5 = r2 - r0;
+    uint32_t r4 = 4;
+    if(r5<=r4)
+        next_block();
+
+    r5 = r5-r4;
+    r4 = 0x80;
+    //rev r4,r4
+    r0=r1;
+    r1 = r1+4;
+
+    //uxth r0,r0;
+    r0 = r0+r1;
+    r5 = r0;
+
+    exit_malloc();
+}
+
+void next_block(uint32_t r1, uint32_t r2){
+    //uxth r2.r2;
+    r1 = r1 + 4;
+    r1 = r1+r2;
+    if(r1<r3)
+        check_block(r3,r1);
+}
+
+void exit_with_null_pointer(uint32_t r1){
+    r1 = 0;
+}
+
+void exit_malloc(uint32_t r4, uint32_t r1, uint32_t r0){
+    r4 = r1;
+    r0=0;
+    mutex_unlock()
+
+    r0=r4;
+    //pop(r4-r5,pc)
+    return r0;
+}
+
+void mutex_unlock(uint32_t r3){
+    uint32_t r1;
+    r3=1;
+    r3 = r0*2;//lsls r3,r0, mas r3 já tem valor.
+    //mvns r3,r3 inverte o regitro ?
+
+    disable_interrupts(global);
+
+    r2 = ofs.mutex_storage;
+    //ands r2,r3;
+    ofs.mutex_storage=r2;
+
+    enable_interrupts
+
+    return r2;
+}
+
+//Tenta travar um mutex. Se falhar, retorna sem bloqueio
+//Input: r0=mutex id (0-7)
+//Return: r0=0 se mutex estava bloqueado e 1 se não puder ser bloqueado
+//AVISO! Não há validação no parametro de input.(arm)
+
+void mutex_try_lock(uint32_t r0){
+    uint32_t r1;
+    r3 = 1;
+    r3 = r0*2;
+
+    disable_interrupts(global);
+
+    r1= ofs.mutex_storage;
+    r0=r2;
+    //ands r0,r3; como fazer bitwyse and no C
+    if(r0==0)
+        mutex_is_free();
+
+    enable_interrupts(global);
+
+    r0 = 1;
+    return r0;
+}
+
+//Tenta bloquear um mutex. Se falhar, espera o mutex ser liberado
+//Essa função bloqueia e apenas retorna se o mutex for bloqueado
+//Input: r0 = mutex id (0-6) porque usamos mutex 7 para alocações de memória
+//Não precisa de retorno
+
+void mutex_lock(uint32_t r3){
+    uint32_t r1;
+    r3 = 1;
+    r3 = r0*2;
+
+    disable_interrupts(global);
+
+    uint32_t r2 = ofs.mutex_storage;
+    r1 &=r3
+    r1|=r3
+    if(r2 ==0)
+        mutex_is_free();
+
+    enable_interrupts(global);
+
+    r2 = r1;
+    r2 = r2*32;
+    r2 = r2+ofs.task_array;
+    r2 = r2+r1;
+
+    task.entry_mutex=r0;
+    r0=WAIT_FOR_MUTEX;
+    task.entry_state=r0;
+
+    //b.
+
+    return r0;
+}
+
+void mutex_is-free(uint32_t r0){
+
+    uint32_t r2 = ofs.mutex_storage;
+    r2|=r3;
+    ofs.mutex_storage=r2;
+
+    enable_interrupts(global)
+    r0 =0;
+    return r0;
+}
+
+//Libera memória alocada
+//Input: r0= endereço da memória alocada
+//Retorna 0 caso erro
+//Não há necessidade de mutexes aqui, já que a operação é atômica
+
+void free(uint32_t r0){
+    r0=r0-4;
+    uint32_t r1=FREE_MEMORY_START;
+    if(r0<r1)
+        error_freeing()
+    r1 = r0;
+    r1 = r1*2;
+    //uxth --> transforma 16 bits em 32 bits, aparentemente, desnecessário
+    r0=r1;
+    return r0;
+}
+
+void error_freeing(uint32_t r0){
+    r0=0;
+    return r0;
 }
 
 int main()
