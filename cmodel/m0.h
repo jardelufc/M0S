@@ -17,10 +17,18 @@
 #define TASK_STACK_SIZE 128;
 #define TASK_ENTRY_SHIFT_L 5;
 #define UNSCHEDULED 0;
+#define ALL_MEMORY_SHITF_L 11;
 
 enum states{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX} estados;
 
 typedef unsigned int uint32_t;
+
+typedef struct{
+    uint32_t ctrl;
+    uint32_t load;
+    uint32_t val;
+    uint32_t calib;
+}Systick;
 
 typedef struct{
     uint32_t R0;

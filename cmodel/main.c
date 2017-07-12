@@ -6,6 +6,7 @@
 ofs myofs;
 Frame myframe;
 task mytasks[MAX_TASKS];
+Systick systick;
 
 void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r8, uint32_t r9, uint32_t r10, uint32_t r11){
 
@@ -24,14 +25,14 @@ void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, 
     r6 = myofs.current_task;
     if(r6 <0)
         continue_normal_tasks();
-    myofs.stack_pos=r1;
+    myofs.idle_stack_pos=r1;
     sleeping_tasks();
 }
 
 void continue_normal_tasks(void){
 
     task *ptask;
-    ptask = myofs.task_array[0];
+    &ptask = myofs.task_array[0];
 
     if(ptask.entry_state == UNSCHEDULED)   //Verificar se o apontamento está correto
         sleeping_tasks();
@@ -104,7 +105,7 @@ void find_next_task_init(uint32_t r5, uint32_t r3){
 void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
     r6++;
     r2 = MAX_TASKS-1;
-    //ands r6,r2 pesquisar mais acerca, aparentemente representa &&, mas o código não apresenta uma condição.
+    r6&=r2;
 
     r2 = r2+r0;
     r2 = r2+myofs.task_array;   //r2 se torna o endereço da próxima tarefa
@@ -128,7 +129,7 @@ void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
     r1 =  r0 + ofs.current_task;
     r2 = 1;
     r2 = r2*32;
-    r1 = r2;     // igual a orrs r1,r2 ?
+    r1 ~= r2;     // igual a orrs r1,r2 ?
     ofs.current_task = r2;
 
     r0 = r0+ofs.idle_stack_pos;
@@ -188,7 +189,7 @@ void idle_task(){
     r5 =  FREE_MEMORY_START; //FREE_MEMORY_START = KERNEL_MEMORY_START + MAX_KERNEL_MEMORY +KERNEL_STACK_SIZE+IDLE_TASK_STACK_SIZE
     r4 = FREE_MEMORY_END;//FREE_MEMORY_END = KERNEL_MEMORY_START + TOTAL MEMORY-(MAX_TASKS*TASk_STACK_SIZE)
     r0 = 0;
-    mutex_try_lock(); //linha 812.arm
+    mutex_try_lock();
 
     if(r!=0)
         enable_ints();
@@ -251,7 +252,36 @@ void start(uint32_t r1, uint32_t r2){
     // mrs r0, CONTROL não encontrei CONTROL
 
     r1 = 2;
-    //RESTA TERMINAR A FUNÇÃO
+    r0|=r1;
+
+    //msr CONTROL,r0;
+    //isb
+
+    r1=0;
+    r2=1;
+    r2=r2*(2^9);
+    memset();
+
+    r0= systick.ctrl;
+    r1 = systick.load;
+    r1=1000;
+
+    systick.load=r1;
+    r1=1000;
+    systick.load=r1;
+    r1=systick.val;
+    r1 = 0;
+    systick.val=r1;
+
+    r1=7;
+    r0=r1;
+
+    init_idle_task();
+
+    init_task_area();
+
+    enable_interrupts(global);
+
 }
 //Envia uma palavra  (1...2^32-1) para outra tarefa por meio de IPC
 //r0 = id da tarefa
@@ -271,14 +301,14 @@ void start ipc_send(){
 void ipc_read(){
     //PUSH LR, POSSIVELMENTE SERÁ NECESSÁRIO IMPLEMENTAR UMA PILA, ATÉ MESMO PARA
     //IMPLEMENTAR AS FUNÇÕES QUE LIDAM COM A PILHA DO SISTEMA E DO USUÁRIO
-    //PUSH{Lr}
+    //push{Lr}
     uint32_t r1 = 0x00000800;
-    r1 = get_current_task_id(); //DÚVIDA
+    uint32_t r0=get_current_task_id();
     r0 = r0*2;
     r0 = r0+ofs.task_array;
     r0 = r0 + r1;
     mytasks[?????].ipc=r0;
-    //POP {pc}
+    //pop {pc}
 }
 
 // ORGANIZA A PILHA PARA O PRIMEIRO ESCALONADOR DO IDLE TASK
@@ -286,8 +316,11 @@ void ipc_read(){
 
 void init_idle_task(uint32_t r2){
     uint32_t r0 = IDLE_TASK_STACK_TOP;
-    uint32_t r1 = 25; //?193?
+    uint32_t r1 = 25; //193?
+
     //rev r1,r1 transforma r1 em um registro de 4 bytes, mas o r1 já é desse tamanho
+    //uint16_t r1 =r1; possível solução para rev ?
+
     r0 = r0 - 8;
     r0  = r0 - r1 + 4;
     r1 = idle_task+1;
@@ -303,9 +336,8 @@ void init_idle_task(uint32_t r2){
 //Padrão PC é setado para init
 //Nenhuma tarefa será escalonada por essa rotina
 
-void init_task_area(){
+void init_task_area(uint32_t r0){
     //push{r0-r4,lr} Usar quando implementar a lista
-    uint32_t r0; //DÚVIDA, já que inicio o ro com uint32_t, ainda é necessário setar seu tamanho ?
     r0 =  r0 + ofs.task_array;
     uint32_t r1 = MAX_TASKS-1;
 }
@@ -318,7 +350,7 @@ void init_loop(uint32_t r0, uint32_t r1){
     mytasks[?????].entry_state = r3;
     r3 = infinite_loop()+1; //INFINITE_LOOP NÃO É UMA FUNÇÃO QUE RETORNA VALOR, COMO PODE SER ADICIONADA DE 1 ?
     mytasks[?????].pc = r3;
-    uint32_t r3 = r1*32; //significa r2,r1, TASK_ENTRY_SHIFT_L?
+    uint32_t r3 = r1*32;
     uint32_t r4 = 0x00001000; //16 bytes?
     r4 = r4-r3;
     r4 = r4 - 0x20; //0x100 == 4 bytes ?
@@ -342,7 +374,6 @@ void create_task(){
 }
 
 void create_loop(uint32_t r0, uint32_t r2){
-    //significa r2,r1, TASK_ENTRY_SHIFT_L?
     uint32_t r2 = r1*32;
     r3 = r3 + r1;
     r3 = r3 + ofs.task_array;
@@ -374,7 +405,7 @@ void create_next(uint32_t r0, uint32_t r2){
         create_loop(r0,r2);
 
     r0 = 0;
-    //mvns r0,r0
+    r0~=r0
 }
 
 void create_exit(){
@@ -419,7 +450,7 @@ void sleep(uint32_t r1, uint32_t r0){
     r1 = r0;
     r0 = ofs.current_task;
 
-    r0 = r0*32 //igual a lsls r0,TASK_ENTRY_SHIFT_L
+    r0 = r0*32
     r2 = r2 + ofs.task_array;
     r2 = r2 + r0;
 
@@ -445,7 +476,7 @@ void get_task_id(uint32_t r0, uint32_t r1){
 
 void get_task_loop(){
     uint32_t r3 = 0x00000800; // 32 bytes
-    r2 = r1*32; //lsls r2,r1,TASK_ENTRY_SHIFT_L;
+    r2 = r1*32;
     r2 = r2 + ofs.task_array;
     r2 = r2+ r3;
 
@@ -474,7 +505,6 @@ void get_number_of_tasks(){
 //Retorna o identificador da tarefa atual
 
 void get_current_task_id(){
-    uint32_t r0;
     r0 = r0 +  ofs.current_task;
     return r0;
 }
@@ -546,8 +576,9 @@ void exit(){
 //       r1 = valor a ser usado para o preenchimento
 //       r2 = tamanho do buffer em tamanho word
 
-void memset(uint32_t r2){
+void memset(uint32_t r2, uint32_t r1, uint32_t r0){
     //stmia r0!,{r1}
+    r0=r1;
     r2 = r2 - 1;
     if(r2!=0)
         memset(r2);
@@ -567,7 +598,10 @@ void malloc(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3)){
     r0 = r4;
     r1 = 3;
     r0 = r0+3;
+
     //bics r0,r1;
+    r0=r1&r1;
+
     r1 = FREE_MEMORY_START;
     r3 = FREE_MEMORY_END;
 }
@@ -597,6 +631,7 @@ void found_a_block(uint32_t r0, uint32_t r2){
     r5 = r5-r4;
     r4 = 0x80;
     //rev r4,r4
+    r4=uint16_t r4;
     r0=r1;
     r1 = r1+4;
 
@@ -632,13 +667,13 @@ void exit_malloc(uint32_t r4, uint32_t r1, uint32_t r0){
 void mutex_unlock(uint32_t r3){
     uint32_t r1;
     r3=1;
-    r3 = r0*2;//lsls r3,r0, mas r3 já tem valor.
-    //mvns r3,r3 inverte o regitro ?
+    r3 = r0*2;
+    r3~=r3;
 
     disable_interrupts(global);
 
     r2 = ofs.mutex_storage;
-    //ands r2,r3;
+    r2&=r3;
     ofs.mutex_storage=r2;
 
     enable_interrupts
@@ -660,7 +695,7 @@ void mutex_try_lock(uint32_t r0){
 
     r1= ofs.mutex_storage;
     r0=r2;
-    //ands r0,r3; como fazer bitwyse and no C
+    r0&=r3;
     if(r0==0)
         mutex_is_free();
 
