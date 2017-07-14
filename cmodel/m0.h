@@ -11,7 +11,7 @@
 #define IDLE_STACK_SIZE 256
 #define FREE_MEMORY_START 1024
 #define FREE_MEMORY_END 15488
-#define idle_task 0
+#define IDLE_TASK 0
 #define MAX_TASKS 4
 #define MAX_MUTEX 8
 #define TASK_STACK_SIZE 128

@@ -38,60 +38,61 @@ void continue_normal_tasks(void){
         sleeping_tasks();
 }
 
-void sleeping_tasks(){
-    uint32_t r1 = ofs.task_array;
+void sleeping_tasks(uint32_t r0){
+    uint32_t r1 = myofs.task_array;
     r1 = r1+r0;
     int r2 = MAX_TASKS-1;
 }
 
-void process_sleeping_tasks(uint32_t r1){
-    uint32_t r3 = r3+r1;
-    uint32_t r4 = r3+ task.entry_state;
+void process_sleeping_tasks(uint32_t r1,uint32_t r2){
+    uint32_t r3 = r2*32;
+    r3=r3+r1;
+    uint32_t r4 = mytasks[MAX_TASKS].entry_state;
 
     if(r4 == WAIT_FOR_MUTEX)
         maybe_is_sleeping();
 }
 
 void check_to_see_if_mutex_is_free(uint32_t r3, uint32_t r0){
-    uint32_t r5 = r3+task.entry_mutex;
-    uint32_t r4 = r0+ofs.
+    uint32_t r5 = r3+mytasks[MAX_TASKS].entry_mutex;
+    uint32_t r4 = r0+myofs.mutex_storage;
 }
 
 void maybe_is_sleeping(uint32_t r4){
     if(r4 == SLEEPING)
         adjust_sleeping_value();
     if(r4!=SENT_TO_SLEEP)
-        advance-counter();
+        advance_counter();
 }
 
 void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
-    r4 = r3+task.entry_target;
+    r4 = r3+mytasks[MAX_TASKS].entry_target;
     r4--;
-    &(r3+task.entry_target)=r4; // é igual a str r4,[r5,taskentrytarget] ?
+    &(r3+mytasks[MAX_TASKS].entry_target)=r4; // é igual a str r4,[r5,taskentrytarget] ?
     if(r4!=0)
         advance_counter();
-    r5 = r3+mytasks[??????].entrty_target;
+    r5 = r3+mytasks[MAX_TASKS].entry_target;
 
     if(r5==SENT_TO_SLEEP)
         do_not_advance_pc();
 }
 
-void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4, uint32_t r5){
-    r5 = r3+mytasks[??????].entry_stack;
-    r4 = Frame.PC;
+void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4){
+    r5 = mytasks[MAX_TASKS].entry_stack;
+    r4 = myframe.PC;
     r4 = r4 + 2;
-    Frame.PC=r4
+    myframe.PC=r4;
 }
 
 void do_not_advance_pc(uint32_t r4, uint32_t r3){
     r4 = RUNNING;
-    mytasks[??????].entry_state = r4; //task.entry_state=r4;
+    mytasks[MAX_TASKS].entry_state = r4; //task.entry_state=r4;
 }
 
-void advance_counter(uint32_t r2){
+void advance_counter(uint32_t r2,uint32_t r1){
     r2 = r2 - 1;
     if(r2>=0)
-        process_sleeping_tasks();
+        process_sleeping_tasks(r1,r2);
 }
 //-----------------------------------------------------------------------------------------
 //Decidir, agora, qual tarefa deve ser escalonada para o processador
@@ -102,7 +103,7 @@ void find_next_task_init(uint32_t r5, uint32_t r3){
     find_next_task();
 }
 
-void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
+void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1,uint32_t r5){
     r6++;
     r2 = MAX_TASKS-1;
     r6&=r2;
@@ -110,7 +111,7 @@ void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
     r2 = r2+r0;
     r2 = r2+myofs.task_array;   //r2 se torna o endereço da próxima tarefa
 
-    r1 = r2 + mytasks[??????].entry_state;//task.entry_state;
+    r1 = r2 + mytasks[MAX_TASKS].entry_state;//task.entry_state;
     if(r1 == RUNNING)
         task_found();
     if(r1== UNSCHEDULED)
@@ -118,41 +119,41 @@ void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1){
 
     r5--;
     if(r5!=0)
-        find_next_task();
+        find_next_task(r6,r2,r0,r1,r5);
 }
 
 void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
-    r1 = r0 + ofs.entry_nr_sched;
+    r1 = myofs.idle_nr_sched;
     r1++;
-    ofs.entry_nr_sched=r1;
+    myofs.idle_nr_sched=r1;
 
-    r1 =  r0 + ofs.current_task;
+    r1 =  r0 + myofs.current_task;
     r2 = 1;
     r2 = r2*32;
-    r1 ~= r2;     // igual a orrs r1,r2 ?
-    ofs.current_task = r2;
+    r1 |= r2;     // igual a orrs r1,r2 ?
+    myofs.current_task = r2;
 
-    r0 = r0+ofs.idle_stack_pos;
-    r1 = idle_task+1; //linha 224, idle_stack é um bloco, contudo não há retorno de valor da função
-    Frame.PC=r1;
+    r0 = r0+myofs.idle_stack_pos;
+    r1 = idle_task()+1; //linha 224, idle_stack é um bloco, contudo não há retorno de valor da função
+    myframe.PC=r1;
     restore_stack();
 }
 
 void it_is_an_unscheduled_task(uint32_t r3, uint32_t r1, uint32_t r2){
     r3 = 1;
     r1 = RUNNING;
-    r1 = r2 +mytasks[??????].entry_state;//task.entry_state;
+    r1 = r2 +mytasks[MAX_TASKS].entry_state;//task.entry_state;
 }
 
 void task_found(uint32_t r1, uint32_t r6, uint32_t r2, uint32_t r3, uint32_t r0){
     r1 = r6;
     myofs.current_task = r1;
 
-    r1 = r2 + mytasks[??????].entry_nr_sched;//task.entry_nr_sched;
+    r1 = r2 + mytasks[MAX_TASKS].entry_nr_sched;//task.entry_nr_sched;
     r1++;
-    mytasks[??????].entry_nr_sched=r1;//task.entry_nr_sched = r1;
+    mytasks[MAX_TASKS].entry_nr_sched=r1;//task.entry_nr_sched = r1;
 
-    r1 = r2 + mytasks[??????].entry_nr_sched;//task.entry_nr_sched;
+    r1 = r2 + mytasks[MAX_TASKS].entry_nr_sched;//task.entry_nr_sched;
     //msr PSP, r1, aparentemente não aplicável em C, uma vez q solicita o uso de um  coprocessador
 
     if(r3!=0)
@@ -173,9 +174,9 @@ void restore_stack(uint32_t r0, uint32_t r4, uint32_t r7, uint32_t r1, uint32_t 
     //msr PSP,r0;
 }
 
-void scheduler_exit(){
+void scheduler_exit(uint32_t r2,uint32_t r3,uint32_t r4,uint32_t r5,uint32_t r6,uint32_t r8,uint32_t r9,uint32_t r10,uint32_t r11){
     setbuf(stdout, 0);  // pode ser usador no lugar de isb ?
-    scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6);
+    scheduler(r2, r3, r4, r5, r6,r8,r9,r10,r11);
 }
 
 //----------------------------------------------------------------------------------
@@ -186,18 +187,18 @@ void scheduler_exit(){
 //----------------------------------------------------------------------------------
 
 void idle_task(){
-    r5 =  FREE_MEMORY_START; //FREE_MEMORY_START = KERNEL_MEMORY_START + MAX_KERNEL_MEMORY +KERNEL_STACK_SIZE+IDLE_TASK_STACK_SIZE
-    r4 = FREE_MEMORY_END;//FREE_MEMORY_END = KERNEL_MEMORY_START + TOTAL MEMORY-(MAX_TASKS*TASk_STACK_SIZE)
-    r0 = 0;
+    uint32_t r5 =  FREE_MEMORY_START; //FREE_MEMORY_START = KERNEL_MEMORY_START + MAX_KERNEL_MEMORY +KERNEL_STACK_SIZE+IDLE_TASK_STACK_SIZE
+    uint32_t r4 = FREE_MEMORY_END;//FREE_MEMORY_END = KERNEL_MEMORY_START + TOTAL MEMORY-(MAX_TASKS*TASk_STACK_SIZE)
+    uint32_t r0 = 0;
     mutex_try_lock();
-
-    if(r!=0)
+    r0|=r0;
+    if(r0!=0)
         enable_ints();
 }
 
-void idle_loop(uint32_t r5, uint32_t r1, uint32_t r2){
+void idle_loop(uint32_t r5, uint32_t r1, uint32_t r4){
     disable_interrupts(global);
-    uint32_t r1 =  r5;
+    r1 =  r5;
     if(r1<0)
         check_next_block();
     if(r1==0)
@@ -212,7 +213,7 @@ void idle_loop(uint32_t r5, uint32_t r1, uint32_t r2){
     if(r3<0)
         check_next_block();
     if(r3>0)
-        combine_zones;
+        combine_zones(r1,r3,r5);
 
     r4 = r4 - r2; //subs r3,r4,r2 pode ser implementado
     r3 = r3- r4; // dessa forma ?
@@ -230,7 +231,7 @@ void check_next_block(uint32_t r1, uint32_t r5, uint32_t r4){
     r5 = r5+r1;
 
     if(r5<r4)
-        idle_loop(uint32_t r5, uint32_t r1, uint32_t r2)
+        idle_loop(r5, r1,r4);
 }
 
 void idle_release_locks(uint32_t r0){
@@ -260,7 +261,7 @@ void start(uint32_t r1, uint32_t r2){
     r1=0;
     r2=1;
     r2=r2*(2^9);
-    memset();
+    memset(r2,r1,r0);
 
     r0= systick.ctrl;
     r1 = systick.load;
@@ -287,10 +288,10 @@ void start(uint32_t r1, uint32_t r2){
 //r0 = id da tarefa
 //r1 = a palavra a ser enviada
 
-void start ipc_send(){
+void ipc_send(uint32_t r1){
     uint32_t r2 = 0x00000800;
     uint32_t r0 = r0*2;
-    r0 =  r0+ofs.task_array;
+    r0 =  r0+myofs.task_array;
     r0= r0+r2;
 
     mytasks[MAX_TASKS].ipc=r1;
@@ -305,31 +306,31 @@ void ipc_read(){
     uint32_t r1 = 0x00000800;
     uint32_t r0=get_current_task_id();
     r0 = r0*2;
-    r0 = r0+ofs.task_array;
+    r0 = r0+myofs.task_array;
     r0 = r0 + r1;
-    mytasks[?????].ipc=r0;
+    mytasks[MAX_TASKS].ipc=r0;
     //pop {pc}
 }
 
 // ORGANIZA A PILHA PARA O PRIMEIRO ESCALONADOR DO IDLE TASK
 // SIMULANDO COMO SE JA TIVESSE SIDO ESCALONADO ANTES
 
-void init_idle_task(uint32_t r2){
-    uint32_t r0 = IDLE_TASK_STACK_TOP;
-    uint32_t r1 = 25; //193?
+void init_idle_task(uint32_t r2, uint32_t r0, uint32_t r1){
+    r0 = IDLE_TASK_STACK_TOP;
+    r1 = 25; //193?
 
     //rev r1,r1 transforma r1 em um registro de 4 bytes, mas o r1 já é desse tamanho
     //uint16_t r1 =r1; possível solução para rev ?
 
     r0 = r0 - 8;
     r0  = r0 - r1 + 4;
-    r1 = idle_task+1;
+    //r1 = idle_task()+1;
     r2 = r2-4;
     r0 = r1; //stored
-    r0 = ro-56;
+    r0 = r0-56;
     r1 = 0x00000800; //32bytes
-    ofs.idle_stack_pos = r0;
-    return ofs.idle_stack_pos;
+    myofs.idle_stack_pos = r0;
+    return myofs.idle_stack_pos;
 }
 
 //Inicializa o vetor de tarefas com os valores padrão e os ponteiros de pilha corretos
@@ -338,27 +339,27 @@ void init_idle_task(uint32_t r2){
 
 void init_task_area(uint32_t r0){
     //push{r0-r4,lr} Usar quando implementar a lista
-    r0 =  r0 + ofs.task_array;
+    r0 =  r0 + myofs.task_array;
     uint32_t r1 = MAX_TASKS-1;
 }
 
-void init_loop(uint32_t r0, uint32_t r1){
+void init_loop(uint32_t r0, uint32_t r1, uint32_t r3){
     uint32_t r2 = r1*32;; //significa r2,r1, TASK_ENTRY_SHIFT_L?
     r2 = r2 + r0;
 
-    uint32_t r3 = INACTIVE;
-    mytasks[?????].entry_state = r3;
+    r3 = INACTIVE;
+    mytasks[MAX_TASKS].entry_state = r3;
     r3 = infinite_loop()+1; //INFINITE_LOOP NÃO É UMA FUNÇÃO QUE RETORNA VALOR, COMO PODE SER ADICIONADA DE 1 ?
-    mytasks[?????].pc = r3;
-    uint32_t r3 = r1*32;
+    mytasks[MAX_TASKS].pc = r3;
+    r3 = r1*32;
     uint32_t r4 = 0x00001000; //16 bytes?
     r4 = r4-r3;
     r4 = r4 - 0x20; //0x100 == 4 bytes ?
-    mytasks[?????].entry_state = r4;
+    mytasks[MAX_TASKS].entry_state = r4;
 
     r1 = r1-1;
     if(r1 >= 0)
-        init_loop(r0, r1);
+        init_loop(r0, r1,r3);
     //pop{r0-r4,pc} usar quando implementar a pilha
 }
 
@@ -366,34 +367,34 @@ void init_loop(uint32_t r0, uint32_t r1){
 //entrada: r0 = endereço de tarefa
 // retorna o id da tarefa ou -1 se der erro
 
-void create_task(){
+void create_task(uint32_t r2){
     //push{r4,lr}  implementar quando a pilha for criada
     disable_interrupts(global);
-    uint32_t r1 = 0x00000800 //800 —> 100000  —>32 ?
-    uint32_t r2 = MAX_TASKS-1;
+    uint32_t r1;//800 —> 100000  —>32 ?
+    r2 = MAX_TASKS-1;
 }
 
-void create_loop(uint32_t r0, uint32_t r2){
-    uint32_t r2 = r1*32;
+void create_loop(uint32_t r0,uint32_t r1, uint32_t r2){
+    uint32_t r3 = r2*32;
     r3 = r3 + r1;
-    r3 = r3 + ofs.task_array;
+    r3 = r3 + myofs.task_array;
 
     uint32_t r4 = r3*32;
     if(r4 != INACTIVE)
         create_next();
 
     r0 = r0 + 1;
-    mytasks[?????].pc = r0;
-    r1 = r3 + mytasks[?????].entry_stack;
-    Frame.PC = r0;
+    mytasks[MAX_TASKS].pc = r0;
+    r1 = mytasks[MAX_TASKS].entry_stack;
+    myframe.PC = r0;
 
     r0 = UNSCHEDULED;
-    mytasks[?????].entry_state = r0;
+    mytasks[MAX_TASKS].entry_state = r0;
 
     r1 = 0x00000800; //32 bytes ?
-    r4 = r1 + ofs.num_tasks;
+    r4 = r1 + myofs.num_tasks;
     r4 = r4+1;
-    ofs.num_tasks = r4;
+    myofs.num_tasks = r4;
 
     r0 = r2;
     create_exit();
@@ -402,10 +403,10 @@ void create_loop(uint32_t r0, uint32_t r2){
 void create_next(uint32_t r0, uint32_t r2){
     r2 = r2 - 1;
     if(r2 >= 0)
-        create_loop(r0,r2);
+        create_loop(r0,r1,r2);
 
     r0 = 0;
-    r0~=r0
+    r0 ~=r0;
 }
 
 void create_exit(){
@@ -420,21 +421,21 @@ void create_exit(){
 //Entrada: r0 = identificação da tarefa
 //         r1 = quantos milisegundos para esperar
 
-void sleep_task{
-    disable_interrupts(global)
+void sleep_task(uint32_t r0,uint32_t r1){
+    disable_interrupts(global);
 
-    uint32_t r2 = 0x00000800 // 32bytes
-    uint32_t r0 = r0*32;
-    r2 = r2 + ofs.task_array;
+    uint32_t r2 = 0;
+    r0 = r0*32;
+    r2 = r2 + myofs.task_array;
     r2 = r2 + r0;
 
-    mytasks[?????].entry_target = r1;
-    r1 = mytasks[?????].entry_state;
+    mytasks[MAX_TASKS].entry_target = r1;
+    r1 = mytasks[MAX_TASKS].entry_state;
     if(r1 == SLEEPING)
         sleeping();
 
     r1 = SENT_TO_SLEEP;
-    mytasks[?????].entry_state = r1;
+    mytasks[MAX_TASKS].entry_state = r1;
 }
 
 void sleeping(){
@@ -448,15 +449,15 @@ void sleeping(){
 void sleep(uint32_t r1, uint32_t r0){
     uint32_t r2 = 0x00000800;// 32bytes
     r1 = r0;
-    r0 = ofs.current_task;
+    r0 = myofs.current_task;
 
-    r0 = r0*32
-    r2 = r2 + ofs.task_array;
+    r0 = r0*32;
+    r2 = r2 + myofs.task_array;
     r2 = r2 + r0;
 
-    mytasks[?????].entry_target = r1;
+    mytasks[MAX_TASKS].entry_target = r1;
     r1 = SLEEPING;
-    mytasks[?????].entry_state = r1;
+    mytasks[MAX_TASKS].entry_state = r1;
 
     //b.
 
@@ -474,19 +475,19 @@ void get_task_id(uint32_t r0, uint32_t r1){
     r1 = MAX_TASKS-1;
 }
 
-void get_task_loop(){
-    uint32_t r3 = 0x00000800; // 32 bytes
-    r2 = r1*32;
-    r2 = r2 + ofs.task_array;
+void get_task_loop(uint32_t r1, uint32_t r0){
+    uint32_t r3=0;
+    uint32_t r2 = r1*32;
+    r2 = r2 + myofs.task_array;
     r2 = r2+ r3;
 
-    r3 = r3 + mytasks[?????].pc;
+    r3 = r3 + mytasks[MAX_TASKS].pc;
     if(r0 == r3)
         found_it();
 
     r1 = r1-1;
     if(r1>=0)
-        get_task_loop(uint32_t r1);
+        get_task_loop(r1,r0);
 }
 
 void found_it(uint32_t r0, uint32_t r1){
@@ -498,14 +499,14 @@ void found_it(uint32_t r0, uint32_t r1){
 
 void get_number_of_tasks(){
     uint32_t r0;
-    r0 = r0 +ofs.num_tasks;
+    r0 = r0 +myofs.num_tasks;
     return r0;
 }
 
 //Retorna o identificador da tarefa atual
 
-void get_current_task_id(){
-    r0 = r0 +  ofs.current_task;
+void get_current_task_id(uint32_t r0){
+    r0 = r0 +  myofs.current_task;
     return r0;
 }
 
@@ -513,7 +514,7 @@ void get_current_task_id(){
 
 void get_system_timer(){
     uint32_t r0;
-    r0 =  r0 + ofs.sys_timer;
+    r0 =  r0 + myofs.sys_timer;
     return r0;
 }
 
@@ -521,10 +522,10 @@ void get_system_timer(){
 //Input:  r0=value
 //Output:  valor de tempo antigo
 
-void set_system_timer(uint32_t r2){
+void set_system_timer(uint32_t r0,uint32_t r2){
     uint32_t r1;
-    r2 = r2+ofs.sys_timer;
-    ofs.sys_timer = r0;
+    r2 = r0*32;
+    myofs.sys_timer = r0;
     r0 = r2;
     return r0;
 }
@@ -532,34 +533,33 @@ void set_system_timer(uint32_t r2){
 //Remove a tarefa de um vetor de escalonamento
 //input: r0 =  id de thread
 
-void kill(uint32_t r1,uint32_t r2, uint32_t r3){
-    uint32_t r1;
-    r2 = r0*32;
-    r2 = r2 + ofs.task_array;
+void kill(uint32_t r0,uint32_t r1, uint32_t r3){
+    uint32_t r2 = r0*32;
+    r2 = r2 + myofs.task_array;
     r2 = r2 + r1;
 
     disable_interrupts(global);
     r3 = INACTIVE;
-    mytasks[?????].entry_state = r3;
+    mytasks[MAX_TASKS].entry_state = r3;
 
     r3 = r0*32;
-    uint32_t = 0x00001000;
+    uint32_t r4 = 0x00001000;
 
     r4 = r4 - r3;
     r4 = r4 - 0x20;
-    mytasks.[?????].entry_stack = r4;
+    mytasks.[MY_TASKS].entry_stack = r4;
 
     r3 = infinite_loop()+1; //infinite não é uma função que retorna nada, como pode ser somada ?
-    mytasks[?????].pc = r3;
+    mytasks[MAX_TASKS].pc = r3;
 
-    r3 = ofs.num_tasks;
+    r3 = myofs.num_tasks;
     r3 = r3-1;
     if(r3>=0)
         keep_going();
 }
 
 void keep_going(uint32_t r3){
-    ofs.num_tasks = r3;
+    myofs.num_tasks = r3;
     enable_interrupts(global);
     return
 }
@@ -582,14 +582,13 @@ void memset(uint32_t r2, uint32_t r1, uint32_t r0){
     r2 = r2 - 1;
     if(r2!=0)
         memset(r2);
-    return
 }
 
 // Aloca memória
 //input r0: tamanho em bytes (máximo 65532 ou FFFC)
 //Retorna o endereço da memoria alocada mais recentemente ou 0 caso falhe
 //
-void malloc(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3)){
+void malloc_arm(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3)){
     //push {r4-r5,lr} implementar quando implementar a pilha
     r4 =  r0;
     r0 = 0;
@@ -661,7 +660,6 @@ void exit_malloc(uint32_t r4, uint32_t r1, uint32_t r0){
 
     r0=r4;
     //pop(r4-r5,pc)
-    return r0;
 }
 
 void mutex_unlock(uint32_t r3){
@@ -676,9 +674,7 @@ void mutex_unlock(uint32_t r3){
     r2&=r3;
     ofs.mutex_storage=r2;
 
-    enable_interrupts
-
-    return r2;
+    enable_interrupts(global);
 }
 
 //Tenta travar um mutex. Se falhar, retorna sem bloqueio
@@ -702,7 +698,6 @@ void mutex_try_lock(uint32_t r0){
     enable_interrupts(global);
 
     r0 = 1;
-    return r0;
 }
 
 //Tenta bloquear um mutex. Se falhar, espera o mutex ser liberado
@@ -735,8 +730,6 @@ void mutex_lock(uint32_t r3){
     task.entry_state=r0;
 
     //b.
-
-    return r0;
 }
 
 void mutex_is-free(uint32_t r0){
@@ -747,7 +740,6 @@ void mutex_is-free(uint32_t r0){
 
     enable_interrupts(global)
     r0 =0;
-    return r0;
 }
 
 //Libera memória alocada
@@ -764,15 +756,13 @@ void free(uint32_t r0){
     r1 = r1*2;
     //uxth --> transforma 16 bits em 32 bits, aparentemente, desnecessário
     r0=r1;
-    return r0;
 }
 
 void error_freeing(uint32_t r0){
     r0=0;
-    return r0;
 }
 
-int main()
-{
+//int main()
+//{
 
-}
+//}
