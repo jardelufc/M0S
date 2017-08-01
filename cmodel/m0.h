@@ -18,8 +18,12 @@
 #define TASK_ENTRY_SHIFT_L 5
 #define UNSCHEDULED 0
 #define ALL_MEMORY_SHITF_L 11
-
-enum states{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX} estados;
+#define INACTIVE 0
+#define UNSCHEDULED 1
+#define RUNNING 2
+#define SLEEPING 3
+#define SENT_TO_SLEEP 4
+#define WAIT_FOR_MUTEX 5
 
 typedef unsigned int uint32_t;
 

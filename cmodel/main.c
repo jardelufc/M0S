@@ -8,6 +8,9 @@ Frame myframe;
 task mytasks[MAX_TASKS];
 Systick systick;
 
+//enum States{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX};
+
+
 void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r8, uint32_t r9, uint32_t r10, uint32_t r11){
 
     uint32_t r0=0;   //main start
@@ -400,7 +403,7 @@ void create_loop(uint32_t r0,uint32_t r1, uint32_t r2){
     create_exit();
 }
 
-void create_next(uint32_t r0, uint32_t r2){
+void create_next(uint32_t r0, uint32_t r1,uint32_t r2){
     r2 = r2 - 1;
     if(r2 >= 0)
         create_loop(r0,r1,r2);
@@ -533,7 +536,10 @@ void set_system_timer(uint32_t r0,uint32_t r2){
 //Remove a tarefa de um vetor de escalonamento
 //input: r0 =  id de thread
 
-void kill(uint32_t r0,uint32_t r1, uint32_t r3){
+void kill(){
+    uint32_t r0;
+    uint32_t r1;
+    uint32_t r3;
     uint32_t r2 = r0*32;
     r2 = r2 + myofs.task_array;
     r2 = r2 + r1;
@@ -547,7 +553,7 @@ void kill(uint32_t r0,uint32_t r1, uint32_t r3){
 
     r4 = r4 - r3;
     r4 = r4 - 0x20;
-    mytasks.[MY_TASKS].entry_stack = r4;
+    mytasks.[MAX_TASKS].entry_stack = r4;
 
     r3 = infinite_loop()+1; //infinite não é uma função que retorna nada, como pode ser somada ?
     mytasks[MAX_TASKS].pc = r3;
@@ -561,13 +567,13 @@ void kill(uint32_t r0,uint32_t r1, uint32_t r3){
 void keep_going(uint32_t r3){
     myofs.num_tasks = r3;
     enable_interrupts(global);
-    return
+    return r3;
 }
 
 //Vai ser chamado por uma thread de forma a parar de executar
 
-void exit(){
-    get_current_task_id(); //call
+void exit_m0(uint32_t r0){
+    get_current_task_id(r0); //call
     kill(); //call
 }
 
@@ -581,14 +587,14 @@ void memset(uint32_t r2, uint32_t r1, uint32_t r0){
     r0=r1;
     r2 = r2 - 1;
     if(r2!=0)
-        memset(r2);
+        memset(r2,r1,r0);
 }
 
 // Aloca memória
 //input r0: tamanho em bytes (máximo 65532 ou FFFC)
 //Retorna o endereço da memoria alocada mais recentemente ou 0 caso falhe
 //
-void malloc_arm(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3)){
+void malloc_arm(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3){
     //push {r4-r5,lr} implementar quando implementar a pilha
     r4 =  r0;
     r0 = 0;
@@ -618,7 +624,7 @@ void it_was_never_allocated(uint32_t r2){
     r2 = FREE_MEMORY_END - FREE_MEMORY_START -4;
 }
 
-void found_a_block(uint32_t r0, uint32_t r2){
+void found_a_block(uint32_t r0, uint32_t r1,uint32_t r2){
     if(r0>r2)
         next_block();
 
@@ -630,7 +636,7 @@ void found_a_block(uint32_t r0, uint32_t r2){
     r5 = r5-r4;
     r4 = 0x80;
     //rev r4,r4
-    r4=uint16_t r4;
+    r4=r4/2; //uint16_t r4;
     r0=r1;
     r1 = r1+4;
 
@@ -641,7 +647,7 @@ void found_a_block(uint32_t r0, uint32_t r2){
     exit_malloc();
 }
 
-void next_block(uint32_t r1, uint32_t r2){
+void next_block(uint32_t r1, uint32_t r2, uint32_t r3){
     //uxth r2.r2;
     r1 = r1 + 4;
     r1 = r1+r2;
@@ -656,23 +662,23 @@ void exit_with_null_pointer(uint32_t r1){
 void exit_malloc(uint32_t r4, uint32_t r1, uint32_t r0){
     r4 = r1;
     r0=0;
-    mutex_unlock()
+    mutex_unlock();
 
     r0=r4;
     //pop(r4-r5,pc)
 }
 
-void mutex_unlock(uint32_t r3){
+void mutex_unlock(uint32_t r0,uint32_t r2,uint32_t r3){
     uint32_t r1;
     r3=1;
     r3 = r0*2;
-    r3~=r3;
+    r3 ~= r3;
 
     disable_interrupts(global);
 
-    r2 = ofs.mutex_storage;
+    r2 = myofs.mutex_storage;
     r2&=r3;
-    ofs.mutex_storage=r2;
+    myofs.mutex_storage=r2;
 
     enable_interrupts(global);
 }
@@ -682,14 +688,14 @@ void mutex_unlock(uint32_t r3){
 //Return: r0=0 se mutex estava bloqueado e 1 se não puder ser bloqueado
 //AVISO! Não há validação no parametro de input.(arm)
 
-void mutex_try_lock(uint32_t r0){
+void mutex_try_lock(uint32_t r0, uint32_t r2){
     uint32_t r1;
-    r3 = 1;
+    uint32_t r3 = 1;
     r3 = r0*2;
 
     disable_interrupts(global);
 
-    r1= ofs.mutex_storage;
+    r1= myofs.mutex_storage;
     r0=r2;
     r0&=r3;
     if(r0==0)
@@ -705,16 +711,16 @@ void mutex_try_lock(uint32_t r0){
 //Input: r0 = mutex id (0-6) porque usamos mutex 7 para alocações de memória
 //Não precisa de retorno
 
-void mutex_lock(uint32_t r3){
+void mutex_lock(uint32_t r0,uint32_t r3){
     uint32_t r1;
     r3 = 1;
     r3 = r0*2;
 
     disable_interrupts(global);
 
-    uint32_t r2 = ofs.mutex_storage;
-    r1 &=r3
-    r1|=r3
+    uint32_t r2 = myofs.mutex_storage;
+    r1 &=r3;
+    r1|=r3;
     if(r2 ==0)
         mutex_is_free();
 
@@ -722,23 +728,22 @@ void mutex_lock(uint32_t r3){
 
     r2 = r1;
     r2 = r2*32;
-    r2 = r2+ofs.task_array;
+    r2 = r2+myofs.task_array;
     r2 = r2+r1;
 
-    task.entry_mutex=r0;
+    mytasks[MAX_TASKS].entry_mutex=r0;
     r0=WAIT_FOR_MUTEX;
-    task.entry_state=r0;
-
+    mytasks[MAX_TASKS].entry_state=r0;
     //b.
 }
 
-void mutex_is-free(uint32_t r0){
+void mutex_is_free(uint32_t r0, uint32_t r3){
 
-    uint32_t r2 = ofs.mutex_storage;
+    uint32_t r2 = myofs.mutex_storage;
     r2|=r3;
-    ofs.mutex_storage=r2;
+    myofs.mutex_storage=r2;
 
-    enable_interrupts(global)
+    enable_interrupts(global);
     r0 =0;
 }
 
@@ -747,11 +752,11 @@ void mutex_is-free(uint32_t r0){
 //Retorna 0 caso erro
 //Não há necessidade de mutexes aqui, já que a operação é atômica
 
-void free(uint32_t r0){
+void free_m0(uint32_t r0){
     r0=r0-4;
     uint32_t r1=FREE_MEMORY_START;
     if(r0<r1)
-        error_freeing()
+        error_freeing();
     r1 = r0;
     r1 = r1*2;
     //uxth --> transforma 16 bits em 32 bits, aparentemente, desnecessário
@@ -759,7 +764,9 @@ void free(uint32_t r0){
 }
 
 void error_freeing(uint32_t r0){
+
     r0=0;
+
 }
 
 //int main()
