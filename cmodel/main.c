@@ -7,6 +7,7 @@ ofs myofs;
 Frame myframe;
 task mytasks[MAX_TASKS];
 Systick systick;
+Node node;
 
 //enum States{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX};
 
@@ -32,13 +33,17 @@ void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, 
     sleeping_tasks();
 }
 
-void continue_normal_tasks(void){
+void continue_normal_tasks(uint32_t r0,uint32_t r6){
+    uint32_t r1 = r6*32;
+    r1= r1+ myofs.task_array;
+    r1 = r1+r0;
 
-    task *ptask;
-    &ptask = myofs.task_array[0];
+    uint32_t r2 = mytasks[MAX_TASKS].entry_state;
+    if(r2 <= UNSCHEDULED)
+        sleeping_tasks(r0);
 
-    if(ptask.entry_state == UNSCHEDULED)   //Verificar se o apontamento está correto
-        sleeping_tasks();
+    //mrs r2,PSP como fazer mrs em C ?
+    //str r2,[r1,TASK_ENTRY_STACK]
 }
 
 void sleeping_tasks(uint32_t r0){
@@ -71,7 +76,7 @@ void maybe_is_sleeping(uint32_t r4){
 void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
     r4 = r3+mytasks[MAX_TASKS].entry_target;
     r4--;
-    &(r3+mytasks[MAX_TASKS].entry_target)=r4; // é igual a str r4,[r5,taskentrytarget] ?
+    mytasks[MAX_TASKS].entry_target=r4;
     if(r4!=0)
         advance_counter();
     r5 = r3+mytasks[MAX_TASKS].entry_target;
@@ -409,7 +414,7 @@ void create_next(uint32_t r0, uint32_t r1,uint32_t r2){
         create_loop(r0,r1,r2);
 
     r0 = 0;
-    r0 ~=r0;
+    r0 = ~r0;
 }
 
 void create_exit(){
@@ -553,7 +558,8 @@ void kill(){
 
     r4 = r4 - r3;
     r4 = r4 - 0x20;
-    mytasks.[MAX_TASKS].entry_stack = r4;
+
+    mytasks[MAX_TASKS].entry_stack = r4;
 
     r3 = infinite_loop()+1; //infinite não é uma função que retorna nada, como pode ser somada ?
     mytasks[MAX_TASKS].pc = r3;
@@ -672,7 +678,7 @@ void mutex_unlock(uint32_t r0,uint32_t r2,uint32_t r3){
     uint32_t r1;
     r3=1;
     r3 = r0*2;
-    r3 ~= r3;
+    r3 = ~r3;
 
     disable_interrupts(global);
 
@@ -743,7 +749,7 @@ void mutex_is_free(uint32_t r0, uint32_t r3){
     r2|=r3;
     myofs.mutex_storage=r2;
 
-    enable_interrupts(global);
+    enable_interrupts(GLOBAL);
     r0 =0;
 }
 
@@ -767,6 +773,64 @@ void error_freeing(uint32_t r0){
 
     r0=0;
 
+}
+
+// FUNÇÕES PARA A IMPLEMENTEÇÃO DA PILHA
+void inicia(node *PILHA)
+{
+ PILHA->prox = NULL;
+ tam=0;
+}
+
+node *aloca()
+{
+ node *novo=(node *) malloc(sizeof(node));
+ if(!novo){
+  printf("Sem memoria disponivel!\n");
+  exit(1);
+ }else{
+  printf("Novo elemento: "); scanf("%d", &novo->num);
+  return novo;
+ }
+}
+
+void push(node *PILHA, uint32_t r0)
+{
+node *novo=aloca();
+novo->prox = NULL;
+
+if(PILHA->prox == NULL)
+  PILHA->prox=r0;
+else{
+  node *tmp = PILHA->prox;
+
+  while(tmp->prox != NULL)
+      tmp = tmp->prox;
+
+  tmp->prox = r0;
+}
+ tam++;
+}
+
+
+node *pop(node *PILHA)
+{
+ if(PILHA->prox == NULL){
+  printf("PILHA ja vazia\n\n");
+  return NULL;
+ }else{
+  node *ultimo = PILHA->prox,
+              *penultimo = PILHA;
+
+  while(ultimo->prox != NULL){
+   penultimo = ultimo;
+   ultimo = ultimo->prox;
+  }
+
+  penultimo->prox = NULL;
+  tam--;
+  return ultimo;
+ }
 }
 
 //int main()

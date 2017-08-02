@@ -26,6 +26,14 @@
 #define WAIT_FOR_MUTEX 5
 
 typedef unsigned int uint32_t;
+typedef unsigned int uint16_t;
+
+
+struct Node{
+ int num;
+ struct Node *prox;
+};
+
 
 typedef struct{
     uint32_t ctrl;
