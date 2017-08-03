@@ -29,10 +29,10 @@ typedef unsigned int uint32_t;
 typedef unsigned int uint16_t;
 
 
-struct Node{
+typedef struct{
  int num;
  struct Node *prox;
-};
+}Node;
 
 
 typedef struct{

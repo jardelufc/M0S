@@ -776,14 +776,13 @@ void error_freeing(uint32_t r0){
 }
 
 // FUNÇÕES PARA A IMPLEMENTEÇÃO DA PILHA
-void inicia(node *PILHA)
+/*void inicia(node *PILHA)
 {
  PILHA->prox = NULL;
  tam=0;
 }
 
-node *aloca()
-{
+Node *aloca(){
  node *novo=(node *) malloc(sizeof(node));
  if(!novo){
   printf("Sem memoria disponivel!\n");
@@ -794,9 +793,8 @@ node *aloca()
  }
 }
 
-void push(node *PILHA, uint32_t r0)
-{
-node *novo=aloca();
+void push(Node *PILHA, uint32_t r0){
+Node *novo=aloca();
 novo->prox = NULL;
 
 if(PILHA->prox == NULL)
@@ -813,14 +811,14 @@ else{
 }
 
 
-node *pop(node *PILHA)
+Node *pop(Node *PILHA)
 {
  if(PILHA->prox == NULL){
   printf("PILHA ja vazia\n\n");
   return NULL;
  }else{
-  node *ultimo = PILHA->prox,
-              *penultimo = PILHA;
+  Node *ultimo = PILHA->prox,
+  Node *penultimo = PILHA;
 
   while(ultimo->prox != NULL){
    penultimo = ultimo;
@@ -831,7 +829,7 @@ node *pop(node *PILHA)
   tam--;
   return ultimo;
  }
-}
+}*/
 
 //int main()
 //{
