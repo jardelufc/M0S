@@ -205,7 +205,7 @@ void idle_task(){
 }
 
 void idle_loop(uint32_t r5, uint32_t r1, uint32_t r4){
-    disable_interrupts(global);
+    disable_interrupts();
     r1 =  r5;
     if(r1<0)
         check_next_block();
@@ -248,14 +248,14 @@ void idle_release_locks(uint32_t r0){
 }
 
 void enable_ints(){
-    enable_interrupts(global);
+    enable_interrupts();
 }
 
 // Ponto de entrada principal
 // Inicia memória, pilhas e o relógio do sistema e chama init()
 
 void start(uint32_t r1, uint32_t r2){
-    disable_interrupts(global);
+    disable_interrupts();
     uint32_t r0 = KERNEL_STACK_TOP;
     // msr MSP, r0,msr, PSP, r0
     // mrs r0, CONTROL não encontrei CONTROL
@@ -289,8 +289,12 @@ void start(uint32_t r1, uint32_t r2){
 
     init_task_area();
 
-    enable_interrupts(global);
+    enable_interrupts();
 
+}
+
+void infinite_loop(){
+    infinite_loop();
 }
 //Envia uma palavra  (1...2^32-1) para outra tarefa por meio de IPC
 //r0 = id da tarefa
@@ -377,7 +381,7 @@ void init_loop(uint32_t r0, uint32_t r1, uint32_t r3){
 
 void create_task(uint32_t r2){
     //push{r4,lr}  implementar quando a pilha for criada
-    disable_interrupts(global);
+    disable_interrupts();
     uint32_t r1;//800 —> 100000  —>32 ?
     r2 = MAX_TASKS-1;
 }
@@ -418,7 +422,7 @@ void create_next(uint32_t r0, uint32_t r1,uint32_t r2){
 }
 
 void create_exit(){
-    enable_interrupts(global);
+    enable_interrupts();
     //pop{r4,pc}
 }
 
@@ -430,7 +434,7 @@ void create_exit(){
 //         r1 = quantos milisegundos para esperar
 
 void sleep_task(uint32_t r0,uint32_t r1){
-    disable_interrupts(global);
+    disable_interrupts();
 
     uint32_t r2 = 0;
     r0 = r0*32;
@@ -447,7 +451,7 @@ void sleep_task(uint32_t r0,uint32_t r1){
 }
 
 void sleeping(){
-    enable_interrupts(global);
+    enable_interrupts();
     return;
 }
 
@@ -549,7 +553,7 @@ void kill(){
     r2 = r2 + myofs.task_array;
     r2 = r2 + r1;
 
-    disable_interrupts(global);
+    disable_interrupts();
     r3 = INACTIVE;
     mytasks[MAX_TASKS].entry_state = r3;
 
@@ -572,7 +576,7 @@ void kill(){
 
 void keep_going(uint32_t r3){
     myofs.num_tasks = r3;
-    enable_interrupts(global);
+    enable_interrupts();
     return r3;
 }
 
@@ -642,7 +646,7 @@ void found_a_block(uint32_t r0, uint32_t r1,uint32_t r2){
     r5 = r5-r4;
     r4 = 0x80;
     //rev r4,r4
-    r4=r4/2; //uint16_t r4;
+    r4=r4/2; ;
     r0=r1;
     r1 = r1+4;
 
@@ -680,13 +684,13 @@ void mutex_unlock(uint32_t r0,uint32_t r2,uint32_t r3){
     r3 = r0*2;
     r3 = ~r3;
 
-    disable_interrupts(global);
+    disable_interrupts();
 
     r2 = myofs.mutex_storage;
     r2&=r3;
     myofs.mutex_storage=r2;
 
-    enable_interrupts(global);
+    enable_interrupts();
 }
 
 //Tenta travar um mutex. Se falhar, retorna sem bloqueio
@@ -699,7 +703,7 @@ void mutex_try_lock(uint32_t r0, uint32_t r2){
     uint32_t r3 = 1;
     r3 = r0*2;
 
-    disable_interrupts(global);
+    disable_interrupts();
 
     r1= myofs.mutex_storage;
     r0=r2;
@@ -707,7 +711,7 @@ void mutex_try_lock(uint32_t r0, uint32_t r2){
     if(r0==0)
         mutex_is_free();
 
-    enable_interrupts(global);
+    enable_interrupts();
 
     r0 = 1;
 }
@@ -722,7 +726,7 @@ void mutex_lock(uint32_t r0,uint32_t r3){
     r3 = 1;
     r3 = r0*2;
 
-    disable_interrupts(global);
+    disable_interrupts();
 
     uint32_t r2 = myofs.mutex_storage;
     r1 &=r3;
@@ -730,7 +734,7 @@ void mutex_lock(uint32_t r0,uint32_t r3){
     if(r2 ==0)
         mutex_is_free();
 
-    enable_interrupts(global);
+    enable_interrupts();
 
     r2 = r1;
     r2 = r2*32;
@@ -749,7 +753,7 @@ void mutex_is_free(uint32_t r0, uint32_t r3){
     r2|=r3;
     myofs.mutex_storage=r2;
 
-    enable_interrupts(GLOBAL);
+    enable_interrupts();
     r0 =0;
 }
 
