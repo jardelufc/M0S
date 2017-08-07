@@ -31,6 +31,7 @@ typedef unsigned int uint16_t;
 
 typedef struct{
  int num;
+ int tam;
  struct Node *prox;
 }Node;
 
