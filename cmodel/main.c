@@ -9,6 +9,10 @@ task mytasks[MAX_TASKS];
 Systick systick;
 Node node;
 
+uint32_t r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11;
+uint32_t lr,pc;
+Node PILHA;
+
 //enum States{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX};
 
 
@@ -28,9 +32,9 @@ void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, 
 
     r6 = myofs.current_task;
     if(r6 <0)
-        continue_normal_tasks();
+        continue_normal_tasks(r0,r6);
     myofs.idle_stack_pos=r1;
-    sleeping_tasks();
+    sleeping_tasks(r0);
 }
 
 void continue_normal_tasks(uint32_t r0,uint32_t r6){
@@ -58,7 +62,7 @@ void process_sleeping_tasks(uint32_t r1,uint32_t r2){
     uint32_t r4 = mytasks[MAX_TASKS].entry_state;
 
     if(r4 == WAIT_FOR_MUTEX)
-        maybe_is_sleeping();
+        maybe_is_sleeping(r4);
 }
 
 void check_to_see_if_mutex_is_free(uint32_t r3, uint32_t r0){
@@ -68,21 +72,21 @@ void check_to_see_if_mutex_is_free(uint32_t r3, uint32_t r0){
 
 void maybe_is_sleeping(uint32_t r4){
     if(r4 == SLEEPING)
-        adjust_sleeping_value();
+        adjust_sleeping_value(r4);
     if(r4!=SENT_TO_SLEEP)
         advance_counter();
 }
 
-void adjust_sleeping_value(uint32_t r3, uint32_t r4, uint32_t r5){
-    r4 = r3+mytasks[MAX_TASKS].entry_target;
+void adjust_sleeping_value(uint32_t r4){
+    r4 =mytasks[MAX_TASKS].entry_target;
     r4--;
     mytasks[MAX_TASKS].entry_target=r4;
     if(r4!=0)
         advance_counter();
-    r5 = r3+mytasks[MAX_TASKS].entry_target;
+    uint32_t r5 =mytasks[MAX_TASKS].entry_target;
 
     if(r5==SENT_TO_SLEEP)
-        do_not_advance_pc();
+        do_not_advance_pc(r4);
 }
 
 void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4){
@@ -92,12 +96,12 @@ void set_state_to_running(uint32_t r5, uint32_t r3, uint32_t r4){
     myframe.PC=r4;
 }
 
-void do_not_advance_pc(uint32_t r4, uint32_t r3){
+void do_not_advance_pc(uint32_t r4){
     r4 = RUNNING;
     mytasks[MAX_TASKS].entry_state = r4; //task.entry_state=r4;
 }
 
-void advance_counter(uint32_t r2,uint32_t r1){
+void advance_counter(){
     r2 = r2 - 1;
     if(r2>=0)
         process_sleeping_tasks(r1,r2);
@@ -105,13 +109,13 @@ void advance_counter(uint32_t r2,uint32_t r1){
 //-----------------------------------------------------------------------------------------
 //Decidir, agora, qual tarefa deve ser escalonada para o processador
 
-void find_next_task_init(uint32_t r5, uint32_t r3){
+void find_next_task_init(uint32_t r5, uint32_t r3, uint32_t r6, uint32_t r0){
     r5 = MAX_TASKS;
     r3=0;
-    find_next_task();
+    find_next_task(r5);
 }
 
-void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1,uint32_t r5){
+void  find_next_task(uint32_t r6,uint32_t r0,uint32_t r5){
     r6++;
     r2 = MAX_TASKS-1;
     r6&=r2;
@@ -121,13 +125,13 @@ void  find_next_task(uint32_t r6, uint32_t r2, uint32_t r0, uint32_t r1,uint32_t
 
     r1 = r2 + mytasks[MAX_TASKS].entry_state;//task.entry_state;
     if(r1 == RUNNING)
-        task_found();
+        task_found(r6,r3,r0);
     if(r1== UNSCHEDULED)
         it_is_an_unscheduled_task();
 
     r5--;
     if(r5!=0)
-        find_next_task(r6,r2,r0,r1,r5);
+        find_next_task(r6,r0,r5);
 }
 
 void schedule_idle_task(uint32_t r1, uint32_t r2, uint32_t r0){
@@ -153,7 +157,7 @@ void it_is_an_unscheduled_task(uint32_t r3, uint32_t r1, uint32_t r2){
     r1 = r2 +mytasks[MAX_TASKS].entry_state;//task.entry_state;
 }
 
-void task_found(uint32_t r1, uint32_t r6, uint32_t r2, uint32_t r3, uint32_t r0){
+void task_found(uint32_t r6,uint32_t r3, uint32_t r0){
     r1 = r6;
     myofs.current_task = r1;
 
@@ -316,16 +320,15 @@ void ipc_send(uint32_t r1){
 
 //Função para ler o valor atual de IPC
 void ipc_read(){
-    //PUSH LR, POSSIVELMENTE SERÁ NECESSÁRIO IMPLEMENTAR UMA PILA, ATÉ MESMO PARA
-    //IMPLEMENTAR AS FUNÇÕES QUE LIDAM COM A PILHA DO SISTEMA E DO USUÁRIO
-    //push{Lr}
+    push(PILHA,Lr);
+    push(PILHA, pc)
     uint32_t r1 = 0x00000800;
     uint32_t r0=get_current_task_id();
     r0 = r0*2;
     r0 = r0+myofs.task_array;
     r0 = r0 + r1;
     mytasks[MAX_TASKS].ipc=r0;
-    //pop {pc}
+    pop(PILHA);
 }
 
 // ORGANIZA A PILHA PARA O PRIMEIRO ESCALONADOR DO IDLE TASK
@@ -804,9 +807,9 @@ void inicia(Node *PILHA)
     PILHA->tam=0;
 }
 
-/*
+
 Node *aloca(Node *PILHA){
-    Node *novo=(PILHA->tam)*malloc(sizeof(Node));
+    Node *novo=(Node*)malloc(sizeof(PILHA->tam));
     if(!novo){
         printf("Sem memoria disponivel!\n");
         exit(1);
@@ -817,10 +820,10 @@ Node *aloca(Node *PILHA){
     return novo;
  }
 }
-*/
+
 
 void push(Node *PILHA, uint32_t r0){
-Node *novo//=aloca();
+Node *novo=aloca(PILHA);
 novo->prox = NULL;
 
 if(PILHA->prox == NULL)
@@ -839,25 +842,25 @@ else{
 
 Node *pop(Node *PILHA)
 {
- if(PILHA->prox == NULL){
-  printf("PILHA ja vazia\n\n");
-  return NULL;
- }else{
-  Node *ultimo = PILHA->prox,
-  Node *penultimo = PILHA;
+    if(PILHA->prox == NULL){
+        printf("PILHA ja vazia\n\n");
+        return NULL;
+    }
+    else{
+        Node *ultimo = PILHA->prox;
+        Node *penultimo = PILHA;
 
-  while(ultimo->prox != NULL){
-   penultimo = ultimo;
-   ultimo = ultimo->prox;
-  }
+        while(ultimo->prox != NULL){
+            penultimo = ultimo;
+            ultimo = ultimo->prox;
+        }
 
-  penultimo->prox = NULL;
-  PILHA -> tam--;
-  return ultimo;
- }
+    penultimo->prox = NULL;
+    PILHA -> tam--;
+    return ultimo;
+    }
 }
 
-//int main()
-//{
+int main(void){
 
-//}
+}
