@@ -10,11 +10,69 @@ Systick systick;
 Node node;
 
 uint32_t r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11;
-uint32_t lr,pc;
-Node PILHA;
+//uint32_t lr,pc;
+Node *lr;
+Node *pc;
 
 //enum States{INACTIVE, UNSCHEDULED, RUNNING, SLEEPING, SENT_TO_SLEEP, WAIT_FOR_MUTEX};
 
+//FUNÇÕES PARA A IMPLEMENTEÇÃO DA PILHA
+void inicia(Node *PILHA)
+{
+    PILHA->prox = NULL;
+    PILHA->tam=0;
+}
+
+Node *aloca(Node *PILHA){
+    Node *novo=(Node*)malloc(sizeof(PILHA->tam));
+    if(!novo){
+        printf("Sem memoria disponivel!\n");
+        exit(1);
+    }
+    else{
+        printf("Novo elemento: ");
+        scanf("%d", &novo->num);
+    return novo;
+ }
+}
+
+void push(Node *PILHA, uint32_t r0){
+Node *novo=aloca(PILHA);
+novo->prox = NULL;
+
+if(PILHA->prox == NULL)
+  PILHA->prox=r0;
+else{
+  Node *tmp = PILHA->prox;
+
+  while(tmp->prox != NULL)
+      tmp = tmp->prox;
+
+  tmp->prox = r0;
+}
+ PILHA->tam++;
+}
+
+
+Node *pop(Node *PILHA){
+    if(PILHA->prox == NULL){
+        printf("PILHA ja vazia\n\n");
+        return NULL;
+    }
+    else{
+        Node *ultimo = PILHA->prox;
+        Node *penultimo = PILHA;
+
+        while(ultimo->prox != NULL){
+            penultimo = ultimo;
+            ultimo = ultimo->prox;
+        }
+
+    penultimo->prox = NULL;
+    PILHA -> tam--;
+    return ultimo;
+    }
+}
 
 void scheduler(uint32_t r2, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r8, uint32_t r9, uint32_t r10, uint32_t r11){
 
@@ -320,15 +378,14 @@ void ipc_send(uint32_t r1){
 
 //Função para ler o valor atual de IPC
 void ipc_read(){
-    push(PILHA,Lr);
-    push(PILHA, pc)
+    push(lr,1); // O algoritmo não determinar qual elemento vai ser push
     uint32_t r1 = 0x00000800;
     uint32_t r0=get_current_task_id();
     r0 = r0*2;
     r0 = r0+myofs.task_array;
     r0 = r0 + r1;
     mytasks[MAX_TASKS].ipc=r0;
-    pop(PILHA);
+    pop(pc);
 }
 
 // ORGANIZA A PILHA PARA O PRIMEIRO ESCALONADOR DO IDLE TASK
@@ -357,7 +414,7 @@ void init_idle_task(uint32_t r2, uint32_t r0, uint32_t r1){
 //Nenhuma tarefa será escalonada por essa rotina
 
 void init_task_area(uint32_t r0){
-    //push{r0-r4,lr} Usar quando implementar a lista
+    push(lr,r0-r4); //Usar quando implementar a lista
     r0 =  r0 + myofs.task_array;
     uint32_t r1 = MAX_TASKS-1;
 }
@@ -379,7 +436,7 @@ void init_loop(uint32_t r0, uint32_t r1, uint32_t r3){
     r1 = r1-1;
     if(r1 >= 0)
         init_loop(r0, r1,r3);
-    //pop{r0-r4,pc} usar quando implementar a pilha
+    pop(pc); //usar quando implementar a pilha
 }
 
 //Cria uma tarefa
@@ -387,7 +444,7 @@ void init_loop(uint32_t r0, uint32_t r1, uint32_t r3){
 // retorna o id da tarefa ou -1 se der erro
 
 void create_task(uint32_t r2){
-    //push{r4,lr}  implementar quando a pilha for criada
+    push(lr,r4);  //implementar quando a pilha for criada
     void __disable_irq(void);
     //disable_interrupts();
     uint32_t r1;//800 —> 100000  —>32 ?
@@ -432,7 +489,7 @@ void create_next(uint32_t r0, uint32_t r1,uint32_t r2){
 void create_exit(){
     void __enable_irq(void);
     //enable_interrupts();
-    //pop{r4,pc}
+    pop(pc);//r4
 }
 
 //Coloca uma tarefa que vai ser identificada por seu numero
@@ -619,7 +676,7 @@ void memset(uint32_t r2, uint32_t r1, uint32_t r0){
 //Retorna o endereço da memoria alocada mais recentemente ou 0 caso falhe
 //
 void malloc_arm(uint32_t r4, uint32_t r5, uint32_t r0, uint32_t r1, uint32_t r3){
-    //push {r4-r5,lr} implementar quando implementar a pilha
+    push (lr,r4-r5); //implementar quando implementar a pilha
     r4 =  r0;
     r0 = 0;
     mutex_lock();
@@ -644,7 +701,7 @@ void check_block(uint32_t r2, uint32_t r1){
 }
 
 void it_was_never_allocated(uint32_t r2){
-    // se for 0, nunca foi alocado, bloco deve ser: tamanho máximo - control_word
+    //Se for 0, nunca foi alocado, bloco deve ser: tamanho máximo - control_word
     r2 = FREE_MEMORY_END - FREE_MEMORY_START -4;
 }
 
@@ -689,7 +746,7 @@ void exit_malloc(uint32_t r4, uint32_t r1, uint32_t r0){
     mutex_unlock();
 
     r0=r4;
-    //pop(r4-r5,pc)
+    pop(pc); //r4-r5,pc)
 }
 
 void mutex_unlock(uint32_t r0,uint32_t r2,uint32_t r3){
@@ -798,67 +855,6 @@ void error_freeing(uint32_t r0){
 
     r0=0;
 
-}
-
-//FUNÇÕES PARA A IMPLEMENTEÇÃO DA PILHA
-void inicia(Node *PILHA)
-{
-    PILHA->prox = NULL;
-    PILHA->tam=0;
-}
-
-
-Node *aloca(Node *PILHA){
-    Node *novo=(Node*)malloc(sizeof(PILHA->tam));
-    if(!novo){
-        printf("Sem memoria disponivel!\n");
-        exit(1);
-    }
-    else{
-        printf("Novo elemento: ");
-        scanf("%d", &novo->num);
-    return novo;
- }
-}
-
-
-void push(Node *PILHA, uint32_t r0){
-Node *novo=aloca(PILHA);
-novo->prox = NULL;
-
-if(PILHA->prox == NULL)
-  PILHA->prox=r0;
-else{
-  Node *tmp = PILHA->prox;
-
-  while(tmp->prox != NULL)
-      tmp = tmp->prox;
-
-  tmp->prox = r0;
-}
- PILHA->tam++;
-}
-
-
-Node *pop(Node *PILHA)
-{
-    if(PILHA->prox == NULL){
-        printf("PILHA ja vazia\n\n");
-        return NULL;
-    }
-    else{
-        Node *ultimo = PILHA->prox;
-        Node *penultimo = PILHA;
-
-        while(ultimo->prox != NULL){
-            penultimo = ultimo;
-            ultimo = ultimo->prox;
-        }
-
-    penultimo->prox = NULL;
-    PILHA -> tam--;
-    return ultimo;
-    }
 }
 
 int main(void){

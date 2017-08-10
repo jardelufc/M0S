@@ -1,8 +1,8 @@
 # depslib dependency file v1.0
-1502287778 source:c:\projetos\m0s\cmodel\main.c
+1502375424 source:c:\projetos\m0s\cmodel\main.c
 	<stdio.h>
 	<stdlib.h>
 	"m0.h"
 
-1502116158 c:\projetos\m0s\cmodel\m0.h
+1502291301 c:\projetos\m0s\cmodel\m0.h
 
