@@ -23,34 +23,33 @@ void inicia(Node *PILHA)
     PILHA->tam=0;
 }
 
-Node *aloca(Node *PILHA){
+Node *aloca(Node *PILHA, uint32_t r0){
     Node *novo=(Node*)malloc(sizeof(PILHA->tam));
     if(!novo){
         printf("Sem memoria disponivel!\n");
         exit(1);
     }
     else{
-        printf("Novo elemento: ");
-        scanf("%d", &novo->num);
+        novo->num=r0;
     return novo;
  }
 }
 
 void push(Node *PILHA, uint32_t r0){
-Node *novo=aloca(PILHA);
+Node *novo=aloca(PILHA, r0);
 novo->prox = NULL;
-
-if(PILHA->prox == NULL)
-  PILHA->prox=r0;
-else{
-  Node *tmp = PILHA->prox;
-
-  while(tmp->prox != NULL)
-      tmp = tmp->prox;
-
-  tmp->prox = r0;
+if(novo->prox == NULL){
+    novo->prox=r0;
 }
- PILHA->tam++;
+else{
+    Node *tmp = novo->prox;
+
+    while(tmp->prox != NULL)
+        tmp = tmp->prox;
+
+    tmp->prox = r0;
+}
+novo->tam++;
 }
 
 
@@ -75,16 +74,15 @@ Node *pop(Node *PILHA){
 }
 
 void scheduler(){
-
-    uint32_t r0=0;   //main start
-    uint32_t r1= myofs.sys_timer;
-    r1+=1;
+    r0=0;   //main start
+    r1= myofs.sys_timer;
+    r1=r1+1;
     myofs.sys_timer=r1;
-
     r1 = myofs.num_tasks;
-    if(r1==0)
+    printf("r1=%d, num_tasks=%d",r1,myofs.num_tasks);
+    if(r1==0){
         scheduler_exit();
-
+    }
     //mrs r1,PSP
     r1 = r1-8*4;
     //stmia r1!,{r4-r7}
@@ -99,19 +97,20 @@ void scheduler(){
     r6 = myofs.current_task;
     if(r6 <0)
         continue_normal_tasks(r0,r6);
+    printf("passou  por aqui hein ");
     myofs.idle_stack_pos=r1;
     sleeping_tasks(r0);
 }
 
 void continue_normal_tasks(){
-    uint32_t r1 = r6*32;
+    r1 = r6*32;
     r1= r1+ myofs.task_array;
     r1 = r1+r0;
 
-    uint32_t r2 = mytasks[MAX_TASKS].entry_state;
+    r2 = mytasks[MAX_TASKS].entry_state;
     if(r2 <= UNSCHEDULED)
         sleeping_tasks(r0);
-
+    printf("chegou em normal tasks");
     //mrs r2,PSP como fazer mrs em C ?
     mytasks[MAX_TASKS].entry_stack = r2;
 }
@@ -254,7 +253,7 @@ void restore_stack(){
 
 void scheduler_exit(){
     setbuf(stdout, 0);  // pode ser usador no lugar de isb ?
-    scheduler(r2, r3, r4, r5, r6,r8,r9,r10,r11);
+    scheduler();
 }
 
 //----------------------------------------------------------------------------------
@@ -328,11 +327,9 @@ void enable_ints(){
 
 void start(){
     void __disable_irq(void);
-    //disable_interrupts();
     uint32_t r0 = KERNEL_STACK_TOP;
     // msr MSP, r0,msr, PSP, r0
     // mrs r0, CONTROL não encontrei CONTROL
-
     r1 = 2;
     r0|=r1;
 
@@ -354,17 +351,12 @@ void start(){
     r1=systick.val;
     r1 = 0;
     systick.val=r1;
-
     r1=7;
     r0=r1;
 
     init_idle_task();
-
     init_task_area();
-
     void __enable_irq(void);
-    //enable_interrupts();
-
 }
 
 void infinite_loop(){
@@ -455,19 +447,19 @@ void create_task(){
     push(lr,r4);  //implementar quando a pilha for criada
     void __disable_irq(void);
     //disable_interrupts();
-    uint32_t r1;//800 —> 100000  —>32 ?
+    r1;//800 —> 100000  —>32 ?
     r2 = MAX_TASKS-1;
+    create_loop();
 }
 
 void create_loop(){
-    uint32_t r3 = r2*32;
+    r3 = r2*32;
     r3 = r3 + r1;
     r3 = r3 + myofs.task_array;
 
     uint32_t r4 = r3*32;
     if(r4 != INACTIVE)
         create_next();
-
     r0 = r0 + 1;
     mytasks[MAX_TASKS].pc = r0;
     r1 = mytasks[MAX_TASKS].entry_stack;
@@ -480,7 +472,6 @@ void create_loop(){
     r4 = r1 + myofs.num_tasks;
     r4 = r4+1;
     myofs.num_tasks = r4;
-
     r0 = r2;
     create_exit();
 }
@@ -496,7 +487,6 @@ void create_next(){
 
 void create_exit(){
     void __enable_irq(void);
-    //enable_interrupts();
     pop(pc);//r4
 }
 
@@ -866,5 +856,8 @@ void error_freeing(){
 }
 
 int main(void){
+    start();
+    //olhar o pop do create_exit()
+    create_task();
     scheduler();
 }
