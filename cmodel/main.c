@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "m0.h"
+#include <limits.h>
+#include <math.h>
 
 
 ofs myofs;
@@ -77,9 +79,9 @@ void scheduler(){
     r0=0;   //main start
     r1= myofs.sys_timer;
     r1=r1+1;
+    printf("%d\n",myofs.num_tasks);
     myofs.sys_timer=r1;
     r1 = myofs.num_tasks;
-    printf("r1=%d, num_tasks=%d",r1,myofs.num_tasks);
     if(r1==0){
         scheduler_exit();
     }
@@ -97,7 +99,6 @@ void scheduler(){
     r6 = myofs.current_task;
     if(r6 <0)
         continue_normal_tasks(r0,r6);
-    printf("passou  por aqui hein ");
     myofs.idle_stack_pos=r1;
     sleeping_tasks(r0);
 }
@@ -338,7 +339,7 @@ void start(){
 
     r1=0;
     r2=1;
-    r2=r2*(2^9);
+    r2=r2*pow(2,9);
     memset(r2,r1,r0);
 
     r0= systick.ctrl;
@@ -385,7 +386,7 @@ void ipc_read(){
     r0 = r0+myofs.task_array;
     r0 = r0 + r1;
     mytasks[MAX_TASKS].ipc=r0;
-    pop(pc);
+    //pop(pc);
 }
 
 // ORGANIZA A PILHA PARA O PRIMEIRO ESCALONADOR DO IDLE TASK
@@ -436,7 +437,7 @@ void init_loop(){
     r1 = r1-1;
     if(r1 >= 0)
         init_loop(r0, r1,r3);
-    pop(pc); //usar quando implementar a pilha
+    //pop(pc); //usar quando implementar a pilha
 }
 
 //Cria uma tarefa
@@ -447,27 +448,41 @@ void create_task(){
     push(lr,r4);  //implementar quando a pilha for criada
     void __disable_irq(void);
     //disable_interrupts();
-    r1;//800 —> 100000  —>32 ?
+    r1=0;//800 —> 100000  —>32 ?
     r2 = MAX_TASKS-1;
     create_loop();
 }
-
+void reverser(uint32_t v){
+    int s = sizeof(v) * CHAR_BIT - 1;
+    uint32_t r=v;
+    for (v >>= 1; v; v >>= 1){
+        r <<= 1;
+        r |= v & 1;
+        s--;
+    }
+    r <<= s; // shift when v's highest bits are zero
+    return r;
+}
 void create_loop(){
     r3 = r2*32;
     r3 = r3 + r1;
     r3 = r3 + myofs.task_array;
 
-    uint32_t r4 = r3*32;
+    r4 = r3*32;
     if(r4 != INACTIVE)
         create_next();
+
     r0 = r0 + 1;
     mytasks[MAX_TASKS].pc = r0;
     r1 = mytasks[MAX_TASKS].entry_stack;
     myframe.PC = r0;
 
+    r0 = 0xC1;
+    reverser(r0);
+    myframe.XPSR=r0;
+
     r0 = UNSCHEDULED;
     mytasks[MAX_TASKS].entry_state = r0;
-
     r1 = 0x00000800; //32 bytes ?
     r4 = r1 + myofs.num_tasks;
     r4 = r4+1;
@@ -480,14 +495,13 @@ void create_next(){
     r2 = r2 - 1;
     if(r2 >= 0)
         create_loop(r0,r1,r2);
-
     r0 = 0;
     r0 = ~r0;
 }
 
 void create_exit(){
     void __enable_irq(void);
-    pop(pc);//r4
+    //pop(pc);//r4
 }
 
 //Coloca uma tarefa que vai ser identificada por seu numero
@@ -517,7 +531,6 @@ void sleep_task(){
 
 void sleeping(){
     void __enable_irq(void);
-    //enable_interrupts();
     return;
 }
 
@@ -570,30 +583,25 @@ void get_task_loop(){
 
 void found_it(){
         r0 = r1;
-        return r0;
+        //return r0;
 }
 
 //Retorna o numero de tarefas executando
 
 void get_number_of_tasks(){
-    uint32_t r0;
-    r0 = r0 +myofs.num_tasks;
-    return r0;
+    r0 = myofs.num_tasks;
 }
 
 //Retorna o identificador da tarefa atual
 
 void get_current_task_id(){
-    r0 = r0 +  myofs.current_task;
-    return r0;
+    r0 = myofs.current_task;
 }
 
 //Retorna o timer do sistema (contador jiffie ou contador de tiques)
 
 void get_system_timer(){
-    uint32_t r0;
-    r0 =  r0 + myofs.sys_timer;
-    return r0;
+    r0 = myofs.sys_timer;
 }
 
 //Define o valor do tempo de sistema a um valor especifico
@@ -601,21 +609,18 @@ void get_system_timer(){
 //Output:  valor de tempo antigo
 
 void set_system_timer(){
-    uint32_t r1;
-    r2 = r0*32;
+    r1=0;
+    r2 = myofs.sys_timer;
     myofs.sys_timer = r0;
     r0 = r2;
-    return r0;
 }
 
 //Remove a tarefa de um vetor de escalonamento
 //input: r0 =  id de thread
 
 void kill(){
-    uint32_t r0;
-    uint32_t r1;
-    uint32_t r3;
-    uint32_t r2 = r0*32;
+    r1=0;
+    r2 = r0*32;
     r2 = r2 + myofs.task_array;
     r2 = r2 + r1;
 
@@ -625,10 +630,9 @@ void kill(){
     mytasks[MAX_TASKS].entry_state = r3;
 
     r3 = r0*32;
-    uint32_t r4 = 0x00001000;
+    //uint32_t r4 = 0x00001000;
 
-    r4 = r4 - r3;
-    r4 = r4 - 0x20;
+    r4 = r3-0x20;
 
     mytasks[MAX_TASKS].entry_stack = r4;
 
@@ -744,7 +748,7 @@ void exit_malloc(){
     mutex_unlock();
 
     r0=r4;
-    pop(pc); //r4-r5,pc)
+    //pop(pc); //r4-r5,pc)
 }
 
 void mutex_unlock(){
@@ -856,8 +860,10 @@ void error_freeing(){
 }
 
 int main(void){
+    r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11=0;
     start();
     //olhar o pop do create_exit()
     create_task();
     scheduler();
+    printf("%d", myofs.num_tasks);
 }
