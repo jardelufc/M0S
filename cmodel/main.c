@@ -509,8 +509,8 @@ void sleep_task(){
     r2 = r2 + myofs.task_array+r0;
 
     mytasks[MAX_TASKS].entry_target = r1;
-    r1 = mytasks[MAX_TASKS].entry_state;
-    if(r1 == SLEEPING)
+
+    if(mytasks[MAX_TASKS].entry_state == SLEEPING)
         sleeping();
 
     mytasks[MAX_TASKS].entry_state = SENT_TO_SLEEP;
@@ -526,12 +526,12 @@ void sleeping(){
 void sleep(){
     r2 = 0;// 32bytes
     r1 = r0;
-    r0 = myofs.current_task;
 
-    r0 = r0*pow(2,TASK_ENTRY_SHIFT_L);
+    r0 = myofs.current_task*pow(2,TASK_ENTRY_SHIFT_L);
     r2 = r2 + myofs.task_array+r0;
 
     mytasks[MAX_TASKS].entry_target = r1;
+
     mytasks[MAX_TASKS].entry_state = SLEEPING;
 
     //b.
@@ -565,7 +565,7 @@ void get_task_loop(){
 
 void found_it(){
         r0 = r1;
-        //return r0;
+
 }
 
 //Retorna o numero de tarefas executando
@@ -602,29 +602,24 @@ void set_system_timer(){
 
 void kill(){
     r1=0;
-    r2 = r0*32;
-    r2 = r2 + myofs.task_array;
-    r2 = r2 + r1;
+    r2 = r0*pow(2,TASK_ENTRY_SHIFT_L);
+    r2 = r2 + myofs.task_array+r1;
 
     void __disable_irq(void);
     //disable_interrupts();
-    r3 = INACTIVE;
-    mytasks[MAX_TASKS].entry_state = r3;
+    mytasks[MAX_TASKS].entry_state = INACTIVE;
 
-    r3 = r0*32;
+    r3 = r0*pow(2,TASK_ENTRY_SHIFT_L);
     //uint32_t r4 = 0x00001000;
 
-    r4 = r3-0x20;
-
-    mytasks[MAX_TASKS].entry_stack = r4;
+    mytasks[MAX_TASKS].entry_stack = r3-0x20;
 
     //r3 = infinite_loop()+1; //infinite não é uma função que retorna nada, como pode ser somada ?
-    infinite_loop(r3);
-    mytasks[MAX_TASKS].pc = r3;
+    //mytasks[MAX_TASKS].pc = infinite_loop();
 
-    r3 = myofs.num_tasks;
-    r3 = r3-1;
-    if(r3>=0)
+    myofs.num_tasks = myofs.num_tasks-1;
+    r3=myofs.num_tasks;
+    if(myofs.num_tasks>=0)
         keep_going();
 }
 
@@ -632,7 +627,7 @@ void keep_going(){
     myofs.num_tasks = r3;
     void __enable_irq(void);
     //enable_interrupts();
-    return r3;
+
 }
 
 //Vai ser chamado por uma thread de forma a parar de executar
@@ -649,7 +644,6 @@ void exit_m0(uint32_t r0){
 
 void memset(){
     //stmia r0!,{r1}
-    r0=r1;
     r2 = r2 - 1;
     if(r2!=0)
         memset();
@@ -660,24 +654,23 @@ void memset(){
 //Retorna o endereço da memoria alocada mais recentemente ou 0 caso falhe
 //
 void malloc_arm(){
-    push (lr,r4-r5); //implementar quando implementar a pilha
-    r4 =  r0;
+    push(lr,r4-r5);
+    r4 = r0;
     r0 = 0;
     mutex_lock();
 
-    r0 = r4;
     r1 = 3;
-    r0 = r0+3;
-
+    r0 = r0+r4+3;
     //bics r0,r1;
-    r0=r1&r1;
+    //r0=r1&r1;
 
     r1 = FREE_MEMORY_START;
     r3 = FREE_MEMORY_END;
 }
 
 void check_block(){
-    r2 = r2 + r1;
+    r2 = r1;
+    r2 |= r1;
     if(r2<0)
         next_block();
     if(r2>0)
@@ -693,31 +686,32 @@ void found_a_block(){
     if(r0>r2)
         next_block();
 
-    uint32_t r5 = r2 - r0;
-    uint32_t r4 = 4;
+    r5 = r2 - r0;
+    r4 = 4;
     if(r5<=r4)
         next_block();
 
     r5 = r5-r4;
-    r4 = 0x80;
-    //rev r4,r4
-    r4=r4/2; ;
+    r4 = 0;
+    reverser(r4);
+    r0|=r4 ;
     r0=r1;
     r1 = r1+4;
 
     //uxth r0,r0;
     r0 = r0+r1;
-    r5 = r0;
+
+    //r5=r0;
+    r0 = r5;
 
     exit_malloc();
 }
 
 void next_block(){
     //uxth r2.r2;
-    r1 = r1 + 4;
-    r1 = r1+r2;
+    r1 = r1+r2+4;
     if(r1<r3)
-        check_block(r3,r1);
+        check_block();
 }
 
 void exit_with_null_pointer(){
@@ -734,17 +728,14 @@ void exit_malloc(){
 }
 
 void mutex_unlock(){
-    uint32_t r1;
-    r3=1;
+    r1=0;
     r3 = r0*2;
     r3 = ~r3;
 
     void __disable_irq(void);
     //disable_interrupts();
 
-    r2 = myofs.mutex_storage;
-    r2&=r3;
-    myofs.mutex_storage=r2;
+    myofs.mutex_storage&=r3;
 
     void __enable_irq(void);
     //enable_interrupts();
@@ -756,17 +747,15 @@ void mutex_unlock(){
 //AVISO! Não há validação no parametro de input.(arm)
 
 void mutex_try_lock(){
-    uint32_t r1;
-    uint32_t r3 = 1;
+    r1=0;
     r3 = r0*2;
 
     void __disable_irq(void);
     //disable_interrupts();
 
-    r1= myofs.mutex_storage;
-    r0=r2;
-    r0&=r3;
-    if(r0==0)
+    r2= myofs.mutex_storage;
+    myofs.mutex_storage&=r3;
+    if(myofs.mutex_storage==0)
         mutex_is_free();
 
     void __enable_irq(void);
@@ -781,38 +770,31 @@ void mutex_try_lock(){
 //Não precisa de retorno
 
 void mutex_lock(){
-    uint32_t r1;
-    r3 = 1;
+    r1=0;
     r3 = r0*2;
 
     void __disable_irq(void);
     //disable_interrupts();
 
-    uint32_t r2 = myofs.mutex_storage;
-    r1 &=r3;
-    r1|=r3;
-    if(r2 ==0)
+    myofs.mutex_storage&=r3;
+    if(myofs.mutex_storage ==0)
         mutex_is_free();
 
     void __enable_irq(void);
     //enable_interrupts();
 
-    r2 = r1;
-    r2 = r2*32;
-    r2 = r2+myofs.task_array;
-    r2 = r2+r1;
+    r2 = r1*pow(2,TASK_ENTRY_SHIFT_L);
+    r2 = r2+myofs.task_array+r1;
 
     mytasks[MAX_TASKS].entry_mutex=r0;
-    r0=WAIT_FOR_MUTEX;
-    mytasks[MAX_TASKS].entry_state=r0;
+
+    mytasks[MAX_TASKS].entry_state=WAIT_FOR_MUTEX;
     //b.
 }
 
 void mutex_is_free(){
 
-    uint32_t r2 = myofs.mutex_storage;
-    r2|=r3;
-    myofs.mutex_storage=r2;
+    myofs.mutex_storage|=r3;
 
     void __enable_irq(void);
     //enable_interrupts();
@@ -826,11 +808,12 @@ void mutex_is_free(){
 
 void free_m0(){
     r0=r0-4;
-    uint32_t r1=FREE_MEMORY_START;
+    r1=FREE_MEMORY_START;
     if(r0<r1)
         error_freeing();
+
     r1 = r0;
-    r1 = r1*2;
+    //r1 = r1*2;
     //uxth --> transforma 16 bits em 32 bits, aparentemente, desnecessário
     r0=r1;
 }
@@ -847,5 +830,5 @@ int main(void){
     //olhar o pop do create_exit()
     create_task();
     scheduler();
-    printf("%d", myofs.num_tasks);
+    printf("numero de tarefas:%d", myofs.num_tasks);
 }
