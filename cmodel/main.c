@@ -389,7 +389,6 @@ void ipc_read(){
 void init_idle_task(){
     r0 = IDLE_TASK_STACK_TOP;
     r1 = 0xC1;
-    printf("r1:%d", r1);
     //rev r1,r1 transforma r1 em um registro de 4 bytes, mas o r1 já é desse tamanho
     //uint16_t r1 =r1; possível solução para rev ?
     reverser(r1);
@@ -444,6 +443,7 @@ void create_task(){
     r2 = MAX_TASKS-1;
     create_loop();
 }
+
 void reverser(uint32_t v){
     int s = sizeof(v) * CHAR_BIT - 1;
     uint32_t r=v;
@@ -455,6 +455,7 @@ void reverser(uint32_t v){
     r <<= s; // shift when v's highest bits are zero
     return r;
 }
+
 void create_loop(){
     r3 = r2*pow(2,TASK_ENTRY_SHIFT_L);
     r3 = r3 + r1+myofs.task_array;
@@ -827,8 +828,7 @@ void error_freeing(){
 int main(void){
     r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11=0;
     start();
-    //olhar o pop do create_exit()
     create_task();
     scheduler();
-    printf("numero de tarefas:%d", myofs.num_tasks);
+    printf("%d",myofs.num_tasks);
 }
